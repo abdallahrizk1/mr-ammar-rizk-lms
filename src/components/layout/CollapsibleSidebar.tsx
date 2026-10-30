@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid,
   BookOpen,
@@ -27,6 +27,16 @@ const NAV_ITEMS = [
 export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem('lms_preview_auth_user');
+      router.push('/login');
+    }
+  };
 
   return (
     <aside
@@ -82,7 +92,7 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
         <button
           type="button"
-          onClick={onLogout}
+          onClick={handleLogout}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 p-3 text-xs sm:text-sm font-bold text-white shadow-sm transition active:scale-95"
         >
           <LogOut className="h-4 w-4 shrink-0" />

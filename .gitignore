@@ -34,3 +34,5 @@ Thumbs.db
 
 tsconfig.tsbuildinfo
 next-env.d.ts
+
+*.zip

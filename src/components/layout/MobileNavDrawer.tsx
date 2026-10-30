@@ -1,0 +1,113 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutGrid, BookOpen, Users, User, LogOut, X } from 'lucide-react';
+
+interface MobileNavDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  studentName?: string;
+}
+
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'الرئيسية', icon: LayoutGrid },
+  { href: '/courses', label: 'الكورسات', icon: BookOpen },
+  { href: '/forum', label: 'المنتدى', icon: Users },
+  { href: '/account', label: 'حسابي', icon: User },
+];
+
+export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawerProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  if (!isOpen) return null;
+
+  const handleLogout = () => {
+    localStorage.removeItem('lms_preview_auth_user');
+    onClose();
+    router.push('/login');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 md:hidden" dir="rtl">
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+      />
+
+      {/* Slide-out Drawer */}
+      <aside className="fixed inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col justify-between border-l border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 transition-transform">
+        <div>
+          {/* Header with Logo and Close Button */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <img
+                src="/images/logo-ammar.png"
+                alt="شعار المنصة"
+                className="h-8 w-auto object-contain"
+              />
+              <span className="text-xs font-bold text-bio-teal dark:text-emerald-400">
+                منصة الأحياء
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="إغلاق القائمة"
+              className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Student Welcome Greeting */}
+          {studentName && (
+            <div className="my-4 rounded-xl bg-bio-teal/10 p-3 text-xs font-bold text-bio-teal dark:bg-emerald-950/40 dark:text-emerald-300">
+              أهلاً بك، {studentName} 🎓
+            </div>
+          )}
+
+          {/* 4 Main Nav Items */}
+          <nav className="mt-4 space-y-1.5">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={false}
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-xl p-3 text-sm font-bold transition ${
+                    isActive
+                      ? 'bg-bio-teal text-white shadow-sm dark:bg-emerald-600'
+                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Logout Button */}
+        <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-700 active:scale-95"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}
