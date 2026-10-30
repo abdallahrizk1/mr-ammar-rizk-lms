@@ -192,6 +192,34 @@ test('Domain 1.7: Profile role syncs to auth.users.raw_app_meta_data', async () 
   assert.equal(authUserRes.raw_app_meta_data.role, 'admin');
 });
 
+test('Domain 1.8: Staff registration without phone receives deterministic Egyptian phone without error', async () => {
+  const db = await createTestDb();
+  const staffId = '00000000-0000-0000-0000-000000000088';
+  await db.exec(`
+    INSERT INTO auth.users (id, email, raw_app_meta_data, raw_user_meta_data)
+    VALUES ('${staffId}', 'dr.ammar.teacher@biology.org', '{"role":"super_admin"}'::jsonb, '{"full_name":"الأستاذ عمار"}'::jsonb);
+  `);
+  const staffProfile = (await db.exec(`SELECT * FROM public.profiles WHERE id = '${staffId}'`))[0].rows[0];
+  assert.equal(staffProfile.role, 'super_admin');
+  assert.match(staffProfile.phone, /^01[0125][0-9]{8}$/, 'Generated phone must be a valid 11-digit Egyptian phone');
+  assert.notEqual(staffProfile.phone, staffProfile.parent_phone);
+});
+
+test('Domain 1.9: Student registration rejects mismatched phone in raw_user_meta_data', async () => {
+  const db = await createTestDb();
+  let spoofAttempted = false;
+  try {
+    await db.exec(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES ('00000000-0000-0000-0000-000000000087', '01012345678@student.platform.local', '{"phone":"01099998888","parent_phone":"01011112222"}'::jsonb);
+    `);
+    spoofAttempted = true;
+  } catch (err) {
+    assert.ok(err.message.includes('PHONE_METADATA_MISMATCH'));
+  }
+  assert.equal(spoofAttempted, false, 'Mismatched phone in user metadata MUST be rejected');
+});
+
 // ==============================================================================
 // DOMAIN 2: Courses, Bundles & R2 Security
 // ==============================================================================
@@ -461,6 +489,47 @@ test('Domain 4: Exam anti-cheat engine, timer snapshot, late penalty, and auto r
   assert.equal(q2Review.correct_option, 'b');
   assert.equal(q2Review.is_correct, false);
 
+  // 4b. Anti-Answer Harvesting: Student 2 takes exam and fails (<50%)
+  await db.exec(`INSERT INTO public.course_enrollments (student_id, course_id, status) VALUES ('${STUDENT_2_ID}', '${courseId}', 'active');`);
+  const startExamS2 = await execAs(db, 'authenticated', STUDENT_2_ID, `SELECT public.start_or_resume_exam('${examId}') as r;`);
+  assert.equal(startExamS2.success, true, 'Student 2 start_or_resume_exam must succeed');
+  const att2Id = startExamS2.rows[0].r.attempt_id;
+  const submitFail = await execAs(db, 'authenticated', STUDENT_2_ID, `
+    SELECT public.submit_exam_attempt('${att2Id}', '[
+      {"question_id":"${q1Id}","selected_option":"b"},
+      {"question_id":"${q2Id}","selected_option":"a"}
+    ]'::jsonb) as r;
+  `);
+  assert.equal(submitFail.rows[0].r.passed, false);
+  assert.equal(submitFail.rows[0].r.score, 0);
+
+  // Review submitted attempt when failed: hides answers
+  const reviewFailed = await execAs(db, 'authenticated', STUDENT_2_ID, `SELECT public.review_submitted_attempt('${att2Id}') as r;`);
+  assert.equal(reviewFailed.rows[0].r.answers_revealed, false);
+  for (const q of reviewFailed.rows[0].r.questions) {
+    assert.equal(q.correct_option, null, 'correct_option must be NULL when exam is not passed');
+    assert.equal(q.is_correct, null, 'is_correct must be NULL when exam is not passed');
+  }
+
+  // Admin reviewing failed attempt CAN see correct answers
+  const adminReview = await execAs(db, 'authenticated', ASSISTANT_ID, `SELECT public.review_submitted_attempt('${att2Id}') as r;`);
+  assert.equal(adminReview.rows[0].r.answers_revealed, true, 'Admin must see answers on review');
+
+  // 4c. Late submission test (> expires_at + 60s)
+  const expiredAttemptId = '70000000-0000-0000-0000-000000000099';
+  await db.exec(`
+    INSERT INTO public.exam_attempts (id, exam_id, student_id, started_at, expires_at, total_questions, assigned_question_ids, status)
+    VALUES ('${expiredAttemptId}', '${examId}', '${STUDENT_2_ID}', NOW() - INTERVAL '40 minutes', NOW() - INTERVAL '10 minutes', 2, ARRAY['${q1Id}'::UUID, '${q2Id}'::UUID], 'in_progress');
+  `);
+  const lateSubmit = await execAs(db, 'authenticated', STUDENT_2_ID, `
+    SELECT public.submit_exam_attempt('${expiredAttemptId}', '[
+      {"question_id":"${q1Id}","selected_option":"a"},
+      {"question_id":"${q2Id}","selected_option":"b"}
+    ]'::jsonb) as r;
+  `);
+  assert.equal(lateSubmit.rows[0].r.status, 'expired_submitted');
+  assert.equal(lateSubmit.rows[0].r.passed, false, 'Late submission must FORCIBLY set passed = false even if 100% correct');
+
   // 5. Auto Re-grade: Teacher changes Q2 correct_option from 'b' to 'c'
   await db.exec(`UPDATE public.exam_questions SET correct_option = 'c' WHERE id = '${q2Id}';`);
 
@@ -559,7 +628,27 @@ test('Domain 6: Center codes, brute force protection, payment receipts, and inst
   assert.equal(Number(invoice.amount), 180.00);
   assert.equal(invoice.payment_method, 'center_code');
 
+  // 1b. Attempting to redeem already-used code fails
+  const secondRedeem = await execAs(db, 'authenticated', STUDENT_2_ID, `SELECT public.redeem_activation_code('BIO-2027-AMMAR') as r;`);
+  assert.equal(secondRedeem.rows[0].r.success, false);
+  assert.equal(secondRedeem.rows[0].r.error, 'INVALID_OR_USED_CODE');
+
+  // 1c. Concurrent redemption test: 2 attempts on a fresh code
+  const raceCourseId = '10000000-0000-0000-0000-000000000003';
+  const concurrentCodeId = '80000000-0000-0000-0000-000000000002';
+  await db.exec(`
+    INSERT INTO public.courses (id, title, price, validity_days) VALUES ('${raceCourseId}', 'كورس السباق', 100.00, 30);
+    INSERT INTO public.activation_codes (id, code, course_id, price_amount) VALUES ('${concurrentCodeId}', 'RACE-CODE-2027', '${raceCourseId}', 100.00);
+  `);
+  const [res1, res2] = await Promise.all([
+    execAs(db, 'authenticated', STUDENT_1_ID, `SELECT public.redeem_activation_code('RACE-CODE-2027') as r;`),
+    execAs(db, 'authenticated', STUDENT_2_ID, `SELECT public.redeem_activation_code('RACE-CODE-2027') as r;`)
+  ]);
+  const successes = [res1.rows?.[0]?.r?.success, res2.rows?.[0]?.r?.success].filter(Boolean);
+  assert.equal(successes.length, 1, 'Exactly one concurrent redemption must succeed');
+
   // 2. Brute force protection on invalid codes
+  await db.exec(`DELETE FROM public.code_redemption_attempts WHERE student_id = '${STUDENT_2_ID}';`);
   for (let i = 1; i <= 5; i++) {
     const invalidRes = await execAs(db, 'authenticated', STUDENT_2_ID, `SELECT public.redeem_activation_code('WRONG_CODE_${i}') as r;`);
     assert.equal(invalidRes.rows[0].r.success, false);
@@ -663,6 +752,11 @@ test('Domain 7: Forum daily limits, privacy RLS, voice note reply, notifications
   const adminAudit = await execAs(db, 'authenticated', SUPER_ADMIN_ID, `SELECT COUNT(*)::INT as count FROM public.audit_logs;`);
   assert.equal(adminAudit.success, true);
   assert.ok(adminAudit.rows[0].count > 0, 'Admin operations must be logged');
+
+  const allAuditRows = (await execAs(db, 'authenticated', SUPER_ADMIN_ID, `SELECT action_type FROM public.audit_logs;`)).rows;
+  const actionTypes = allAuditRows.map(r => r.action_type);
+  assert.ok(actionTypes.includes('PAYMENT_RECEIPT_APPROVED'), 'Must include PAYMENT_RECEIPT_APPROVED in audit logs');
+  assert.ok(actionTypes.includes('COURSE_CREATED'), 'Must include COURSE_CREATED in audit logs');
 
   const assistantAudit = await execAs(db, 'authenticated', ASSISTANT_ID, `SELECT * FROM public.audit_logs;`);
   assert.equal(assistantAudit.rows.length, 0, 'Assistant cannot read audit logs');

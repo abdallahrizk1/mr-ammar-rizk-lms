@@ -287,7 +287,15 @@ test('Video Player Controls: Seek bar, speed, skip buttons, volume, and fullscre
     'Must support playback speed options (0.5x to 2x)'
   );
   assert.ok(controlsContent.includes('-10s') && controlsContent.includes('+10s'), 'Must support -10s and +10s skip buttons');
-  assert.ok(playerContent.includes('DEMO_DURATION_SEC = 20'), 'Must use 20-second demo duration');
+  assert.ok(!playerContent.includes('DEMO_DURATION_SEC'), 'Must eliminate hardcoded DEMO_DURATION_SEC limit');
+  assert.ok(playerContent.includes('onDurationChange') && playerContent.includes('onTimeUpdate'), 'Must dynamically sync real video duration and time updates');
+  assert.ok(playerContent.includes('useVideoGestures') && playerContent.includes('DoubleTapRippleOverlay'), 'Must support YouTube-style double-tap seeking with ripple feedback');
+  const gesturesFile = path.join(srcDir, 'features', 'video-player', 'useVideoGestures.ts');
+  assert.ok(fs.existsSync(gesturesFile), 'useVideoGestures hook must exist');
+  const rippleFile = path.join(srcDir, 'features', 'video-player', 'DoubleTapRippleOverlay.tsx');
+  assert.ok(fs.existsSync(rippleFile), 'DoubleTapRippleOverlay component must exist');
+  const rippleContent = fs.readFileSync(rippleFile, 'utf8');
+  assert.ok(rippleContent.includes('-10 ثوانٍ') && rippleContent.includes('+10 ثوانٍ'), 'Double tap feedback must display -10 ثوانٍ and +10 ثوانٍ indicators');
   assert.ok(playerContent.includes('muted={isMuted}'), 'Must bind muted={isMuted} on <video> element');
   assert.ok(playerContent.includes('fullscreenchange'), 'Must sync fullscreen state on Escape key');
   assert.ok(controlsContent.includes('flex-nowrap'), 'Controls row must not wrap');
@@ -323,6 +331,35 @@ test('Video Player Controls: Seek bar, speed, skip buttons, volume, and fullscre
   assert.equal(formatVideoTime(NaN), '00:00');
 });
 
+// 18. Video Player Mobile Responsiveness & YouTube Gestures
+test('Video Player Mobile Responsiveness & YouTube Gestures: 320px–768px fit & Double-Tap Seeker', () => {
+  const controlsFile = path.join(srcDir, 'features', 'video-player', 'VideoPlayerControls.tsx');
+  const playerFile = path.join(srcDir, 'features', 'video-player', 'CrossPlatformHlsPlayer.tsx');
+  const gesturesFile = path.join(srcDir, 'features', 'video-player', 'useVideoGestures.ts');
+  const rippleFile = path.join(srcDir, 'features', 'video-player', 'DoubleTapRippleOverlay.tsx');
 
+  const controlsContent = fs.readFileSync(controlsFile, 'utf8');
+  const playerContent = fs.readFileSync(playerFile, 'utf8');
+  const gesturesContent = fs.readFileSync(gesturesFile, 'utf8');
+  const rippleContent = fs.readFileSync(rippleFile, 'utf8');
 
+  // 1. Mobile compact classes preventing horizontal clipping on 320px-425px & popover containment
+  assert.ok(controlsContent.includes('gap-0.5') && controlsContent.includes('h-7'), 'Controls must use compact sizes (h-7, gap-0.5) for narrow viewports');
+  assert.ok(controlsContent.includes('text-[9px]'), 'Controls must use ultra-compact 9px text for narrow viewports');
+  assert.ok(controlsContent.includes('hidden lg:block'), 'Volume slider must be hidden below lg to avoid clipping at 768px with open sidebar');
+  assert.ok(controlsContent.includes('max-h-32'), 'Speed and quality popups must be constrained on mobile (max-h-32) to prevent clipping in 16:9 frame');
 
+  // 2. YouTube double tap gestures & single-tap conflict prevention
+  assert.ok(playerContent.includes('touch-manipulation'), 'Player container must specify touch-manipulation to eliminate mobile double-tap zoom delay');
+  assert.ok(gesturesContent.includes('lastTapTimeRef.current < 280'), 'Gestures hook must detect double-tap within 280ms threshold');
+  assert.ok(gesturesContent.includes("side === 'left' ? -10 : 10"), 'Gestures hook must skip -10s on left side and +10s on right side');
+  assert.ok(gesturesContent.includes('clearTimeout(singleTapTimeoutRef.current)'), 'Double-tap must cancel single-tap timer to prevent pause/play flicker');
+
+  // 3. Visual ripple indicator
+  assert.ok(rippleContent.includes('-10 ثوانٍ') && rippleContent.includes('+10 ثوانٍ'), 'Ripple overlay must show -10 ثوانٍ and +10 ثوانٍ');
+
+  // 4. Real duration sync & iOS Safari full-screen event support
+  assert.ok(!playerContent.includes('DEMO_DURATION_SEC'), 'Must not have hardcoded demo duration');
+  assert.ok(playerContent.includes('onLoadedMetadata') && playerContent.includes('onDurationChange') && playerContent.includes('onTimeUpdate'), 'Must sync real duration through native video events');
+  assert.ok(playerContent.includes('webkitbeginfullscreen') && playerContent.includes('webkitendfullscreen'), 'Must bind iOS Safari webkitbeginfullscreen & webkitendfullscreen on video element');
+});
