@@ -87,7 +87,7 @@ async function verifyJwtOnEdge(token: string, secret?: string): Promise<Record<s
       const isValid = await crypto.subtle.verify(
         'HMAC',
         key,
-        b64UrlToBytes(signatureB64),
+        b64UrlToBytes(signatureB64) as unknown as BufferSource,
         enc.encode(`${headerB64}.${payloadB64}`)
       );
       if (!isValid) return null;

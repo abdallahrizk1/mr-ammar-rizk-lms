@@ -7,11 +7,11 @@ import { Footer } from '@/components/landing/Footer';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#040D0E] text-slate-900 dark:text-slate-100 transition-colors">
       {/* 1. Top Navbar (Matching Image 1 & Image 5) */}
       <TopNavbar />
 
-      <main className="flex-1 mt-4 sm:mt-6">
+      <main className="flex-1 mt-2 sm:mt-3">
         {/* 2. Hero Section (Matching Image 1) */}
         <HeroSection />
 

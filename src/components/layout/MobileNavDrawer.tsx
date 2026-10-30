@@ -39,15 +39,15 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
       />
 
       {/* Slide-out Drawer */}
-      <aside className="fixed inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col justify-between border-l border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 transition-transform">
+      <aside className="fixed inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col justify-between border-l border-slate-200 bg-white p-4 sm:p-5 shadow-2xl dark:border-teal-500/20 dark:bg-[#091D20] transition-transform">
         <div>
           {/* Header with Logo and Close Button */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-teal-500/20">
             <div className="flex items-center gap-2">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
-                className="h-8 w-auto object-contain"
+                className="h-7 w-auto object-contain"
               />
               <span className="text-xs font-bold text-bio-teal dark:text-emerald-400">
                 منصة الأحياء
@@ -57,7 +57,7 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
               type="button"
               onClick={onClose}
               aria-label="إغلاق القائمة"
-              className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="rounded-xl p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-[#0D2628] dark:hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
@@ -65,13 +65,13 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
 
           {/* Student Welcome Greeting */}
           {studentName && (
-            <div className="my-4 rounded-xl bg-bio-teal/10 p-3 text-xs font-bold text-bio-teal dark:bg-emerald-950/40 dark:text-emerald-300">
+            <div className="my-3 rounded-xl bg-bio-teal/10 p-2.5 text-xs font-bold text-bio-teal dark:bg-emerald-950/60 dark:border dark:border-emerald-500/20 dark:text-emerald-300">
               أهلاً بك، {studentName} 🎓
             </div>
           )}
 
           {/* 4 Main Nav Items */}
-          <nav className="mt-4 space-y-1.5">
+          <nav className="mt-3 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -82,13 +82,13 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
                   href={item.href}
                   prefetch={false}
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl p-3 text-sm font-bold transition ${
+                  className={`flex items-center gap-3 rounded-xl p-2.5 text-xs sm:text-sm font-bold transition ${
                     isActive
                       ? 'bg-bio-teal text-white shadow-sm dark:bg-emerald-600'
-                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-[#0D2628]'
                   }`}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -97,11 +97,11 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
         </div>
 
         {/* Logout Button */}
-        <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
+        <div className="border-t border-slate-100 pt-3 dark:border-teal-500/20">
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-700 active:scale-95"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-red-700 active:scale-95"
           >
             <LogOut className="h-4 w-4" />
             <span>تسجيل الخروج</span>

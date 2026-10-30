@@ -75,31 +75,31 @@ export function LoginForm() {
   };
 
   return (
-    <div dir="rtl" className="mx-auto w-full max-w-md rounded-3xl border border-slate-200/90 bg-white/95 p-6 sm:p-8 text-slate-900 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 dark:text-white transition-colors">
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-bio-teal/15 text-bio-teal dark:text-gold shadow-inner">
-          <LogIn className="h-7 w-7" />
+    <div dir="rtl" className="mx-auto my-auto w-full max-w-sm sm:max-w-md rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 text-slate-900 shadow-md dark:border-teal-500/25 dark:bg-[#0D2628] dark:shadow-2xl dark:shadow-black/50 dark:text-white transition-colors">
+      <div className="mb-3 text-center">
+        <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-bio-teal/15 text-bio-teal dark:bg-emerald-500/20 dark:text-emerald-400 shadow-inner">
+          <LogIn className="h-4.5 w-4.5" />
         </div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white">تسجيل الدخول 🧬</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">مرحباً بك مجدداً في منصة الأحياء</p>
+        <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">تسجيل الدخول 🧬</h1>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">مرحباً بك مجدداً في منصة الأحياء</p>
       </div>
 
       {isLocked && (
-        <div className="mb-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-center text-sm font-bold text-rose-600 dark:text-rose-300">
+        <div className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-center text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-300">
           ⚠️ الحساب مقفل مؤقتاً بسبب تكرار المحاولات الخاطئة. يرجى الانتظار {remainingSeconds} ثانية.
         </div>
       )}
 
       {errorMsg && !isLocked && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-400">
+        <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-2.5">
         <div>
-          <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">رقم الهاتف المسجل *</label>
+          <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">رقم الهاتف المسجل *</label>
           <div className="relative">
             <input
               type="tel"
@@ -108,19 +108,19 @@ export function LoginForm() {
               value={phone}
               onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
               placeholder="010XXXXXXXX"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 placeholder-slate-400 text-left focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal disabled:opacity-50 dark:border-white/15 dark:bg-slate-800/80 dark:text-white dark:placeholder-slate-500"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 text-left focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal disabled:opacity-50 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400 dark:focus:border-emerald-400 dark:focus:ring-1 dark:focus:ring-emerald-400/40"
             />
-            <Phone className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+            <Phone className="absolute left-3 top-2 sm:top-2.5 h-4 w-4 text-slate-400" />
           </div>
         </div>
 
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">كلمة السر *</label>
+            <label className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">كلمة السر *</label>
             <button
               type="button"
               onClick={() => setIsForgotModalOpen(true)}
-              className="text-xs font-medium text-bio-teal hover:underline dark:text-gold"
+              className="text-xs font-medium text-bio-teal hover:underline dark:text-emerald-400"
             >
               نسيت كلمة السر؟
             </button>
@@ -132,13 +132,13 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal disabled:opacity-50 dark:border-white/15 dark:bg-slate-800/80 dark:text-white dark:placeholder-slate-500"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal disabled:opacity-50 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400 dark:focus:border-emerald-400 dark:focus:ring-1 dark:focus:ring-emerald-400/40"
             />
-            <Lock className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+            <Lock className="absolute left-3 top-2 sm:top-2.5 h-4 w-4 text-slate-400" />
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-100/70 px-3.5 py-2.5 text-xs text-slate-700 dark:border-white/10 dark:bg-black/40 dark:text-slate-300">
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-100/70 px-3 py-1.5 text-xs text-slate-700 dark:border-teal-500/20 dark:bg-[#071719] dark:text-slate-300">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -147,7 +147,7 @@ export function LoginForm() {
               onChange={(e) => setIsTurnstileVerified(e.target.checked)}
               className="h-4 w-4 rounded accent-bio-teal"
             />
-            <label htmlFor="turnstile" className="cursor-pointer select-none">
+            <label htmlFor="turnstile" className="cursor-pointer select-none text-[11px] sm:text-xs">
               أنا لست برنامج روبوت (حماية كلاود فلير)
             </label>
           </div>
@@ -157,25 +157,25 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={isSubmitting || isLocked || !isTurnstileVerified}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal py-3.5 text-base font-bold text-white shadow-md transition hover:bg-bio-deep active:scale-95 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95 disabled:opacity-50"
         >
           {isSubmitting ? 'جارٍ التحقق...' : 'دخول المنصة 🚀'}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-3.5 text-center text-xs text-slate-500 dark:text-slate-400">
         طالب جديد؟{' '}
-        <Link prefetch={false} href="/register" className="font-bold text-bio-teal hover:underline dark:text-gold">
+        <Link prefetch={false} href="/register" className="font-bold text-bio-teal hover:underline dark:text-emerald-400">
           إنشاء حساب جديد هنا
         </Link>
       </p>
 
       {isForgotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 text-right text-slate-900 shadow-2xl dark:border-gold/30 dark:bg-slate-900 dark:text-white">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
-              <h3 className="flex items-center gap-2 text-base font-bold text-bio-teal dark:text-gold">
-                <HelpCircle className="h-5 w-5" />
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-right text-slate-900 shadow-2xl dark:border-teal-500/30 dark:bg-[#0D2628] dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-teal-500/20 pb-2.5">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-bio-teal dark:text-emerald-400">
+                <HelpCircle className="h-4 w-4" />
                 استعادة وتغيير كلمة السر
               </h3>
               <button
@@ -183,27 +183,27 @@ export function LoginForm() {
                 onClick={() => setIsForgotModalOpen(false)}
                 className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <div className="mt-3 space-y-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
               <p>
                 🔒 <strong>إذا نسيت كلمة السر وأنت خارج المنصة:</strong>
                 <br />
                 يتم استعادة كلمة السر حصرياً عبر التواصل المباشر مع <strong>الدعم الفني عبر واتساب</strong>، حيث يتأكد الأدمن من هويتك ورقم ولي الأمر المسجل ويقوم بإعادة تعيينها لك فوراً من لوحة التحكم.
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                💡 <strong>ملاحظة للطلاب المسجلين:</strong> إذا كان حسابك مفتوحاً، يمكنك تغيير كلمة السر بنفسك مباشرة في أي وقت من تاب <em>"الأمان"</em> داخل صفحة <em>"حسابي"</em>.
+              <p className="text-[11px] text-slate-500 dark:text-teal-300/60">
+                💡 <strong>ملاحظة للطلاب المسجلين:</strong> إذا كان حسابك مفتوحاً، يمكنك تغيير كلمة السر بنفسك مباشرة في أي وقت من تاب <em>&quot;الأمان&quot;</em> داخل صفحة <em>&quot;حسابي&quot;</em>.
               </p>
             </div>
 
-            <div className="mt-6 flex flex-col gap-2">
+            <div className="mt-4 flex flex-col gap-2">
               <a
                 href="https://wa.me/201000000000?text=مرحباً، أريد المساعدة في استعادة كلمة السر لحسابي في منصة مستر عمار رزق"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white transition hover:bg-emerald-500"
+                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-emerald-500"
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>تواصل مع الدعم الفني عبر واتساب</span>
@@ -211,7 +211,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => setIsForgotModalOpen(false)}
-                className="rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
+                className="rounded-xl border border-slate-200 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-teal-500/30 dark:bg-[#071719] dark:text-slate-300 dark:hover:bg-teal-950/40"
               >
                 إغلاق النافذة
               </button>

@@ -92,38 +92,38 @@ export function AvailableCoursesSection() {
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: -280, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: 280, behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="py-8 sm:py-14 bg-slate-50 dark:bg-slate-900/60 transition-colors" dir="rtl">
+    <section className="py-4 sm:py-5 lg:py-6 bg-slate-50 dark:bg-[#071719] transition-colors" dir="rtl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 mb-3 sm:mb-4">
           <div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white">
+            <h2 className="text-base sm:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-emerald-300">
               كورساتنا المتاحة للعام 2026/2027 🧬
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-teal-200/60 mt-0.5">
               اختر صفك الدراسي وابدأ التعلم بأعلى معايير الفهم والتطبيق
             </p>
           </div>
 
           {/* Navigation Arrows */}
-          <div className="flex items-center gap-2 self-end md:self-auto">
+          <div className="flex items-center gap-1.5 self-end md:self-auto">
             <button
               type="button"
               onClick={scrollRight}
               aria-label="السابق"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-bio-teal"
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-xl border border-slate-200 dark:border-teal-500/25 bg-white dark:bg-[#0D2628] text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-emerald-600"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -131,7 +131,7 @@ export function AvailableCoursesSection() {
               type="button"
               onClick={scrollLeft}
               aria-label="التالي"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-bio-teal"
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-xl border border-slate-200 dark:border-teal-500/25 bg-white dark:bg-[#0D2628] text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-emerald-600"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -139,7 +139,7 @@ export function AvailableCoursesSection() {
         </div>
 
         {/* Grade Filters Tabs */}
-        <div className="flex flex-wrap items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
           {FILTERS.map((f) => {
             const isActive = activeFilter === f.id;
             return (
@@ -147,10 +147,10 @@ export function AvailableCoursesSection() {
                 key={f.id}
                 type="button"
                 onClick={() => setActiveFilter(f.id)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-bold transition-all shadow-sm ${
+                className={`rounded-xl px-2.5 py-0.5 text-xs font-bold transition-all shadow-sm ${
                   isActive
-                    ? 'bg-bio-teal text-white shadow-md'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700'
+                    ? 'bg-bio-teal dark:bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-[#0D2628] dark:text-slate-300 dark:border-teal-500/20 dark:hover:bg-[#123639]'
                 }`}
               >
                 {f.label}
@@ -162,56 +162,56 @@ export function AvailableCoursesSection() {
         {/* Courses Horizontal Scroll Track */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth snap-x pb-4 pt-1 no-scrollbar"
+          className="flex gap-2.5 sm:gap-3.5 overflow-x-auto scroll-smooth snap-x pb-2.5 pt-0.5 no-scrollbar"
         >
           {filteredCourses.length > 0 ? (
             filteredCourses.map((course) => (
               <div
                 key={course.id}
-                className="w-[280px] sm:w-[320px] shrink-0 snap-start flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 transition hover:shadow-md text-right"
+                className="w-[220px] sm:w-[250px] shrink-0 snap-start flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm dark:border-teal-500/20 dark:bg-[#0D2628] transition hover:shadow-md text-right"
               >
                 <div>
-                  <div className="relative h-36 sm:h-40 w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 mb-3 flex items-center justify-center">
+                  <div className="relative h-24 sm:h-28 w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#071719] mb-2 flex items-center justify-center border border-slate-200/50 dark:border-teal-500/10">
                     <img
                       src={course.image}
                       alt={course.title}
-                      className="h-28 w-28 object-contain"
+                      className="h-18 w-18 sm:h-20 sm:w-20 object-contain"
                     />
                   </div>
 
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white line-clamp-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
                     {course.title}
                   </h3>
 
-                  <div className="mt-2.5">
+                  <div className="mt-1.5">
                     {course.isFree ? (
-                      <span className="inline-block rounded-md border border-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                      <span className="inline-block rounded-md border border-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
                         كورس مجاني
                       </span>
                     ) : (
-                      <span className="text-sm sm:text-base font-black text-bio-teal dark:text-emerald-400">
+                      <span className="text-xs sm:text-sm font-black text-bio-teal dark:text-emerald-400">
                         {course.price}
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="mt-2 space-y-1 border-t border-slate-100 dark:border-teal-500/15 pt-1.5 text-[10px] sm:text-[11px] text-slate-500 dark:text-teal-200/60">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                      <Calendar className="h-3 w-3 text-slate-400 dark:text-teal-300/60" />
                       <span>{course.date}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-slate-400" />
+                      <Clock className="h-3 w-3 text-slate-400 dark:text-teal-300/60" />
                       <span>{course.note}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4">
+                <div className="mt-2.5">
                   <Link
                     href="/register"
                     prefetch={false}
-                    className="flex w-full items-center justify-center rounded-xl border-2 border-bio-teal py-2 text-xs sm:text-sm font-bold text-bio-teal transition hover:bg-bio-teal hover:text-white dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-slate-950 active:scale-95"
+                    className="flex w-full items-center justify-center rounded-xl border border-bio-teal py-1 text-xs font-bold text-bio-teal transition hover:bg-bio-teal hover:text-white dark:border-emerald-500/50 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white active:scale-95"
                   >
                     الدخول للكورس
                   </Link>
@@ -219,7 +219,7 @@ export function AvailableCoursesSection() {
               </div>
             ))
           ) : (
-            <div className="w-full py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="w-full py-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               لا توجد كورسات متاحة حالياً في هذا التصنيف.
             </div>
           )}

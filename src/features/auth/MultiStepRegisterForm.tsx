@@ -88,39 +88,39 @@ export function MultiStepRegisterForm() {
 
   if (isSuccess) {
     return (
-      <div dir="rtl" className="mx-auto max-w-lg rounded-3xl border border-emerald-500/30 bg-white p-8 text-center text-slate-900 shadow-2xl dark:bg-slate-900/90 dark:text-white transition-colors">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="h-10 w-10 animate-bounce" />
+      <div dir="rtl" className="mx-auto my-auto max-w-md rounded-2xl border border-emerald-500/30 bg-white p-4 sm:p-5 text-center text-slate-900 shadow-xl dark:bg-[#0D2628] dark:border-emerald-500/30 dark:text-white transition-colors">
+        <div className="mx-auto mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="h-7 w-7 animate-bounce" />
         </div>
-        <h2 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">تم إنشاء حسابك بنجاح! 🎉</h2>
-        <div className="my-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+        <h2 className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">تم إنشاء حسابك بنجاح! 🎉</h2>
+        <div className="my-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
           ⚡ <strong>تنبيه مراجعة الحساب:</strong> تم فتح حسابك للدخول مبدئياً فوراً. سيتم مراجعة والتأكد من بياناتك وبيانات ولي الأمر خلال 24 إلى 48 ساعة.
         </div>
-        <p className="text-sm text-slate-600 dark:text-slate-300">أهلاً بك يا <strong>{formData.fullName}</strong> في رحلة التفوق مع مستر عمار رزق!</p>
-        <Link prefetch={false} href="/dashboard" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal py-3.5 text-base font-bold text-white shadow-lg transition hover:bg-bio-deep active:scale-95">
+        <p className="text-xs text-slate-600 dark:text-slate-300">أهلاً بك يا <strong>{formData.fullName}</strong> في رحلة التفوق مع مستر عمار رزق!</p>
+        <Link prefetch={false} href="/dashboard" className="mt-3.5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95">
           الانتقال إلى لوحة الطالب الرئيسية 🚀
         </Link>
       </div>
     );
   }
 
-  const inputClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-white/15 dark:bg-slate-800/80 dark:text-white dark:placeholder-slate-500";
+  const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400 dark:focus:border-emerald-400 dark:focus:ring-1 dark:focus:ring-emerald-400/40";
 
   return (
-    <div dir="rtl" className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200/90 bg-white/95 p-6 sm:p-8 text-slate-900 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80 dark:text-white transition-colors">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl sm:text-3xl font-black text-bio-teal dark:text-gold">انضم لدفعة 2027 🧬</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">سجل حسابك في منصة مستر عمار رزق للأحياء</p>
+    <div dir="rtl" className="mx-auto my-auto w-full max-w-md sm:max-w-lg rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 text-slate-900 shadow-lg dark:border-teal-500/25 dark:bg-[#0D2628] dark:shadow-2xl dark:shadow-black/50 dark:text-white transition-colors">
+      <div className="mb-3 text-center">
+        <h1 className="text-lg sm:text-xl font-black text-bio-teal dark:text-emerald-400">انضم لدفعة 2027 🧬</h1>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">سجل حسابك في منصة مستر عمار رزق للأحياء</p>
       </div>
 
-      <div className="mb-8 flex items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 pb-4">
+      <div className="mb-3 flex items-center justify-between gap-1.5 border-b border-slate-200 dark:border-teal-500/20 pb-2.5">
         {[
           { num: 1, label: 'البيانات الشخصية', icon: User },
           { num: 2, label: 'البيانات الدراسية', icon: School },
           { num: 3, label: 'تأمين الحساب', icon: Lock },
         ].map((item) => (
-          <div key={item.num} className={`flex items-center gap-2 text-xs sm:text-sm font-semibold ${step >= item.num ? 'text-bio-teal dark:text-gold' : 'text-slate-400 dark:text-slate-500'}`}>
-            <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${step === item.num ? 'bg-bio-teal text-white dark:bg-gold dark:text-slate-950 font-black' : step > item.num ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+          <div key={item.num} className={`flex items-center gap-1.5 text-xs font-semibold ${step >= item.num ? 'text-bio-teal dark:text-emerald-300 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
+            <span className={`flex h-5.5 w-5.5 items-center justify-center rounded-full text-xs font-bold ${step === item.num ? 'bg-bio-teal text-white dark:bg-emerald-500 dark:text-slate-950 font-black shadow-sm' : step > item.num ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-[#071719] dark:border dark:border-teal-500/20 text-slate-500'}`}>
               {item.num}
             </span>
             <span className="hidden sm:inline">{item.label}</span>
@@ -128,94 +128,94 @@ export function MultiStepRegisterForm() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-2.5">
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">الاسم الثلاثي أو الرباعي للطالب *</label>
+              <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">الاسم الثلاثي أو الرباعي للطالب *</label>
               <input type="text" value={formData.fullName} onChange={(e) => updateField('fullName', e.target.value)} placeholder="مثال: أحمد محمد علي" className={inputClass} />
               {errors.fullName && <p className="mt-1 text-xs text-rose-500">{errors.fullName}</p>}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">رقم هاتف الطالب (واتساب) *</label>
+              <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">رقم هاتف الطالب (واتساب) *</label>
               <input type="tel" dir="ltr" value={formData.phone} onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))} placeholder="010XXXXXXXX" className={`${inputClass} text-left`} />
               {errors.phone && <p className="mt-1 text-xs text-rose-500">{errors.phone}</p>}
             </div>
-            <button type="button" onClick={handleNext} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal py-3 text-base font-bold text-white shadow-md transition hover:bg-bio-deep active:scale-95">
+            <button type="button" onClick={handleNext} className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95">
               <span>المتابعة للبيانات الدراسية</span>
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </button>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">الصف الدراسي *</label>
+                <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">الصف الدراسي *</label>
                 <select value={formData.gradeId} onChange={(e) => updateField('gradeId', e.target.value)} className={inputClass}>
-                  {HIGH_SCHOOL_GRADES.map((g) => <option key={g.value} value={g.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{g.label}</option>)}
+                  {HIGH_SCHOOL_GRADES.map((g) => <option key={g.value} value={g.value} className="bg-white dark:bg-[#071719] text-slate-900 dark:text-white">{g.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">نوع التعليم *</label>
+                <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">نوع التعليم *</label>
                 <select value={formData.educationType} onChange={(e) => updateField('educationType', e.target.value)} className={inputClass}>
-                  {EDUCATION_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t.label}</option>)}
+                  {EDUCATION_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-white dark:bg-[#071719] text-slate-900 dark:text-white">{t.label}</option>)}
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">المحافظة *</label>
+                <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">المحافظة *</label>
                 <select value={formData.governorate} onChange={(e) => updateField('governorate', e.target.value)} className={inputClass}>
-                  {EGYPTIAN_GOVERNORATES.map((gov) => <option key={gov} value={gov} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{gov}</option>)}
+                  {EGYPTIAN_GOVERNORATES.map((gov) => <option key={gov} value={gov} className="bg-white dark:bg-[#071719] text-slate-900 dark:text-white">{gov}</option>)}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">النوع *</label>
+                <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">النوع *</label>
                 <select value={formData.gender} onChange={(e) => updateField('gender', e.target.value)} className={inputClass}>
-                  <option value="male" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">ذكر</option>
-                  <option value="female" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">أنثى</option>
+                  <option value="male" className="bg-white dark:bg-[#071719] text-slate-900 dark:text-white">ذكر</option>
+                  <option value="female" className="bg-white dark:bg-[#071719] text-slate-900 dark:text-white">أنثى</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">رقم هاتف ولي الأمر (ممنوع تطابقه مع الطالب) *</label>
+              <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">رقم هاتف ولي الأمر (ممنوع تطابقه مع الطالب) *</label>
               <input type="tel" dir="ltr" value={formData.parentPhone} onChange={(e) => updateField('parentPhone', sanitizePhoneInput(e.target.value))} placeholder="01XXXXXXXXX" className={`${inputClass} text-left`} />
               {errors.parentPhone && <p className="mt-1 text-xs text-rose-500 font-bold">{errors.parentPhone}</p>}
             </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setStep(1)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:border-white/20 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10">
+            <div className="flex gap-2.5 pt-1">
+              <button type="button" onClick={() => setStep(1)} className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:border-teal-500/30 dark:bg-[#071719] dark:text-slate-300 dark:hover:bg-teal-950/40">
                 <ArrowRight className="h-4 w-4" />
                 <span>رجوع</span>
               </button>
-              <button type="button" onClick={handleNext} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-bio-teal py-3 text-base font-bold text-white shadow-md transition hover:bg-bio-deep active:scale-95">
+              <button type="button" onClick={handleNext} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95">
                 <span>المتابعة لكلمة السر</span>
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </button>
             </div>
           </div>
         )}
 
         {step === 3 && (
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">كلمة السر (6 خانات على الأقل) *</label>
+              <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">كلمة السر (6 خانات على الأقل) *</label>
               <input type="password" value={formData.password} onChange={(e) => updateField('password', e.target.value)} placeholder="••••••••" className={inputClass} />
               {errors.password && <p className="mt-1 text-xs text-rose-500">{errors.password}</p>}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200">تأكيد كلمة السر *</label>
+              <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">تأكيد كلمة السر *</label>
               <input type="password" value={formData.confirmPassword} onChange={(e) => updateField('confirmPassword', e.target.value)} placeholder="••••••••" className={inputClass} />
               {errors.confirmPassword && <p className="mt-1 text-xs text-rose-500">{errors.confirmPassword}</p>}
             </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setStep(2)} className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:border-white/20 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10">
+            <div className="flex gap-2.5 pt-1">
+              <button type="button" onClick={() => setStep(2)} className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:border-teal-500/30 dark:bg-[#071719] dark:text-slate-300 dark:hover:bg-teal-950/40">
                 <ArrowRight className="h-4 w-4" />
                 <span>رجوع</span>
               </button>
-              <button type="submit" disabled={isSubmitting} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-bio-teal py-3.5 text-base font-black text-white shadow-xl transition hover:bg-bio-deep active:scale-95 disabled:opacity-50">
-                <ShieldCheck className="h-5 w-5" />
+              <button type="submit" disabled={isSubmitting} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95 disabled:opacity-50">
+                <ShieldCheck className="h-4 w-4" />
                 <span>{isSubmitting ? 'جارٍ إنشاء الحساب...' : 'تأكيد وإنشاء الحساب 🎉'}</span>
               </button>
             </div>
@@ -223,9 +223,9 @@ export function MultiStepRegisterForm() {
         )}
       </form>
 
-      <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-3.5 text-center text-xs text-slate-500 dark:text-slate-400">
         لديك حساب بالفعل؟{' '}
-        <Link prefetch={false} href="/login" className="font-bold text-bio-teal hover:underline dark:text-gold">
+        <Link prefetch={false} href="/login" className="font-bold text-bio-teal hover:underline dark:text-emerald-400">
           تسجيل الدخول هنا
         </Link>
       </p>

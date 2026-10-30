@@ -41,8 +41,8 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
   return (
     <aside
       dir="rtl"
-      className={`flex flex-col justify-between border-l border-slate-200 bg-white p-4 transition-all duration-300 dark:border-slate-800 dark:bg-slate-900 ${
-        isCollapsed ? 'w-20' : 'w-64'
+      className={`flex flex-col justify-between border-l border-slate-200 bg-white p-3 transition-all duration-300 dark:border-teal-500/20 dark:bg-[#091D20] ${
+        isCollapsed ? 'w-16' : 'w-56 lg:w-60'
       } ${className}`}
     >
       <div>
@@ -50,20 +50,20 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
         <button
           type="button"
           onClick={() => setIsCollapsed((prev) => !prev)}
-          className="flex w-full items-center justify-between rounded-xl p-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition mb-6"
+          className="flex w-full items-center justify-between rounded-xl p-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#0D2628] transition mb-4"
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#10B981] text-white">
+          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#10B981] text-white">
             <ChevronRight
-              className={`h-4 w-4 transition-transform duration-200 ${
+              className={`h-3.5 w-3.5 transition-transform duration-200 ${
                 isCollapsed ? 'rotate-180' : ''
               }`}
             />
           </div>
-          {!isCollapsed && <span>تصغير النافذة</span>}
+          {!isCollapsed && <span className="text-xs">تصغير النافذة</span>}
         </button>
 
         {/* 4 Main Nav Items (Image 5) */}
-        <nav className="space-y-2">
+        <nav className="space-y-1.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -74,13 +74,13 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
                 href={item.href}
                 prefetch={false}
                 title={item.label}
-                className={`flex items-center gap-3 rounded-xl p-3 text-sm font-bold transition ${
+                className={`flex items-center gap-2.5 rounded-xl p-2.5 text-xs sm:text-sm font-bold transition ${
                   isActive
-                    ? 'bg-[#10B981] text-white shadow-sm'
-                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-[#0D2628]'
                 }`}
               >
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon className="h-4 w-4 shrink-0" />
                 {!isCollapsed && <span>{item.label}</span>}
               </Link>
             );
@@ -89,11 +89,11 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
       </div>
 
       {/* Logout Button (Bottom Red in Image 5) */}
-      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+      <div className="pt-3 border-t border-slate-100 dark:border-teal-500/20">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 p-3 text-xs sm:text-sm font-bold text-white shadow-sm transition active:scale-95"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 p-2 text-xs font-bold text-white shadow-sm transition active:scale-95"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!isCollapsed && <span>تسجيل الخروج</span>}
