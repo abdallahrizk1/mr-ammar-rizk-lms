@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize2, Minimize2, Gauge, Settings } from 'lucide-react';
 
 export interface VideoPlayerControlsProps {
@@ -27,12 +27,52 @@ export function VideoPlayerControls({
   onTogglePlay, onSeek, onSkip, onToggleMute, onVolumeChange, onPlaybackRateChange, onQualityChange, onToggleFullscreen,
 }: VideoPlayerControlsProps) {
   const [openMenu, setOpenMenu] = useState<'speed' | 'quality' | null>(null);
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
+  const lastThrottledSeekRef = useRef<number>(0);
+  const seekThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const safeDuration = Math.max(1, duration);
   const isEnded = duration > 0 && currentTime >= duration;
-  const progressPercent = Math.min(100, Math.max(0, (currentTime / safeDuration) * 100));
+  const activeTime = isScrubbing && scrubTime !== null ? scrubTime : currentTime;
+  const progressPercent = Math.min(100, Math.max(0, (activeTime / safeDuration) * 100));
+
+  const commitSeek = useCallback((time: number) => {
+    if (seekThrottleTimerRef.current) clearTimeout(seekThrottleTimerRef.current);
+    onSeek(time);
+    setIsScrubbing(false);
+    setTimeout(() => setScrubTime(null), 80);
+  }, [onSeek]);
+
+  const handlePointerUp = useCallback(() => {
+    const target = scrubTime !== null ? scrubTime : currentTime;
+    commitSeek(target);
+  }, [commitSeek, currentTime, scrubTime]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    setScrubTime(val);
+    if (!isScrubbing) {
+      commitSeek(val);
+      return;
+    }
+    const now = Date.now();
+    if (now - lastThrottledSeekRef.current >= 180) {
+      lastThrottledSeekRef.current = now;
+      onSeek(val);
+    } else {
+      if (seekThrottleTimerRef.current) clearTimeout(seekThrottleTimerRef.current);
+      seekThrottleTimerRef.current = setTimeout(() => {
+        lastThrottledSeekRef.current = Date.now();
+        onSeek(val);
+      }, 180);
+    }
+  }, [commitSeek, isScrubbing, onSeek]);
 
   useEffect(() => {
     setOpenMenu(null);
+    return () => {
+      if (seekThrottleTimerRef.current) clearTimeout(seekThrottleTimerRef.current);
+    };
   }, [isFullscreen]);
 
   return (
@@ -42,21 +82,44 @@ export function VideoPlayerControls({
       )}
       <div
         dir="ltr"
+        style={{ direction: 'ltr' }}
         onClick={(e) => e.stopPropagation()}
-        className={`absolute inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-1 pt-3 pb-1 sm:px-3 sm:pt-6 sm:pb-3 text-white select-none transition-opacity duration-300 ${
+        className={`video-player-controls absolute inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-1 pt-3 pb-1 sm:px-3 sm:pt-6 sm:pb-3 text-white select-none transition-opacity duration-300 ${
           isVisible || openMenu ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
         {/* Interactive Seek Bar */}
-        <div className="group/bar relative mb-1 sm:mb-2 flex items-center px-0.5 sm:px-1">
-          <div className="relative h-1.5 sm:h-2 w-full overflow-hidden rounded-full bg-white/25">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-75" style={{ width: `${progressPercent}%` }} />
+        <div
+          dir="ltr"
+          style={{ direction: 'ltr' }}
+          className="group/bar relative mb-1 sm:mb-2 flex items-center w-full"
+        >
+          <div className="relative h-1.5 sm:h-2 w-full overflow-hidden rounded-full bg-white/25 pointer-events-none">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 ${
+                isScrubbing ? '' : 'transition-all duration-75'
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
-          <div className="pointer-events-none absolute h-3 w-3 sm:h-4 sm:w-4 -translate-x-1/2 rounded-full bg-emerald-400 shadow-md ring-2 ring-white transition-transform group-hover/bar:scale-125" style={{ left: `${progressPercent}%` }} />
+          <div
+            className="pointer-events-none absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-x-1/2 rounded-full bg-emerald-400 shadow-md ring-2 ring-white transition-transform group-hover/bar:scale-125"
+            style={{ left: `${progressPercent}%` }}
+          />
           <input
-            type="range" min={0} max={safeDuration} step={0.1} value={Math.min(currentTime, safeDuration)}
-            onChange={(e) => onSeek(Number(e.target.value))} aria-label="شريط تقديم وتأخير الفيديو"
-            className="absolute inset-0 -top-2 h-7 w-full cursor-pointer opacity-0"
+            dir="ltr"
+            style={{ direction: 'ltr' }}
+            type="range"
+            min={0}
+            max={safeDuration}
+            step={0.1}
+            value={Math.min(activeTime, safeDuration)}
+            onPointerDown={() => setIsScrubbing(true)}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onChange={handleChange}
+            aria-label="شريط تقديم وتأخير الفيديو"
+            className="absolute inset-0 -top-2 h-7 w-full cursor-pointer opacity-0 m-0 p-0"
           />
         </div>
 
@@ -90,13 +153,20 @@ export function VideoPlayerControls({
                 {isMuted || volume === 0 ? <VolumeX className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-400" /> : <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
               </button>
               <input
-                type="range" min={0} max={1} step={0.05} value={isMuted ? 0 : volume}
-                onChange={(e) => onVolumeChange(Number(e.target.value))} aria-label="مستوى الصوت"
+                dir="ltr"
+                style={{ direction: 'ltr' }}
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={isMuted ? 0 : volume}
+                onChange={(e) => onVolumeChange(Number(e.target.value))}
+                aria-label="مستوى الصوت"
                 className="hidden lg:block w-12 xl:w-16 accent-emerald-400 cursor-pointer h-1"
               />
             </div>
             <div className="font-mono text-[9px] sm:text-[11px] md:text-xs font-bold text-slate-200 whitespace-nowrap shrink-0">
-              <span className="text-emerald-400">{formatVideoTime(currentTime)}</span><span className="mx-0.5 text-white/40">/</span><span>{formatVideoTime(safeDuration)}</span>
+              <span className="text-emerald-400">{formatVideoTime(activeTime)}</span><span className="mx-0.5 text-white/40">/</span><span>{formatVideoTime(safeDuration)}</span>
             </div>
           </div>
 

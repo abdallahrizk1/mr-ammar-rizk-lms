@@ -21,7 +21,8 @@ export function CrossPlatformHlsPlayer({
   const hlsRef = useRef<Hls | null>(null); const lastSavedAtRef = useRef<number>(0);
   const targetSeekTimeRef = useRef<number>(0); const lastSeekTimestampRef = useRef<number>(0);
   const completionSentRef = useRef<boolean>(false); const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const controlsVisibleRef = useRef<boolean>(true); const storageKey = `lms_lesson_pos_${lessonId}`;
+  const bufferingTimeoutRef = useRef<NodeJS.Timeout | null>(null); const controlsVisibleRef = useRef<boolean>(true);
+  const storageKey = `lms_lesson_pos_${lessonId}`;
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false); const [isMuted, setIsMuted] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(1); const [playbackRate, setPlaybackRate] = useState<number>(1);
@@ -37,18 +38,34 @@ export function CrossPlatformHlsPlayer({
     if (isPlaying) hideTimerRef.current = setTimeout(() => setAreControlsVisible(false), 3000);
   }, [isPlaying]);
 
+  const clearBuffering = useCallback(() => {
+    if (bufferingTimeoutRef.current) { clearTimeout(bufferingTimeoutRef.current); bufferingTimeoutRef.current = null; }
+    setIsBuffering(false);
+  }, []);
+
+  const handleWaiting = useCallback(() => {
+    if (bufferingTimeoutRef.current) clearTimeout(bufferingTimeoutRef.current);
+    // Suppress buffering overlay during or immediately after seeks / skips (within 800ms)
+    if (Date.now() - lastSeekTimestampRef.current < 800) return;
+    bufferingTimeoutRef.current = setTimeout(() => {
+      if (Date.now() - lastSeekTimestampRef.current >= 800) setIsBuffering(true);
+    }, 750);
+  }, []);
+
   useEffect(() => {
     if (!isPlaying) { setAreControlsVisible(true); if (hideTimerRef.current) clearTimeout(hideTimerRef.current); }
     else resetHideTimer();
-    return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (bufferingTimeoutRef.current) clearTimeout(bufferingTimeoutRef.current);
+    };
   }, [isPlaying, resetHideTimer]);
 
   useEffect(() => {
     setIsPlaying(false); completionSentRef.current = false;
     try {
       const s = Number(localStorage.getItem(storageKey) || '0');
-      if (s > 0) { setCurrentTime(s); if (videoRef.current) videoRef.current.currentTime = s; }
-      else setCurrentTime(0);
+      setCurrentTime(s > 0 ? s : 0); if (s > 0 && videoRef.current) videoRef.current.currentTime = s;
     } catch { setCurrentTime(0); }
   }, [storageKey]);
 
@@ -75,7 +92,7 @@ export function CrossPlatformHlsPlayer({
     if (isIOS && video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = manifestUrl; try { video.load(); } catch {}
     } else if (Hls.isSupported()) {
-      hls = new Hls({ backBufferLength: 90, maxBufferLength: 60, maxMaxBufferLength: 120, maxBufferHole: 0.5, enableWorker: true });
+      hls = new Hls({ backBufferLength: 90, maxBufferLength: 60, maxMaxBufferLength: 300, maxBufferHole: 0.5, enableWorker: true });
       hlsRef.current = hls; hls.loadSource(manifestUrl); hls.attachMedia(video);
       hls.on(Hls.Events.LEVEL_LOADED, (_e, data) => {
         if (data.details?.totalduration && Number.isFinite(data.details.totalduration) && data.details.totalduration > 0) setDuration(data.details.totalduration);
@@ -102,7 +119,7 @@ export function CrossPlatformHlsPlayer({
   const handleSeek = useCallback((newTimeSec: number) => {
     const clamped = Math.max(0, duration > 0 ? Math.min(duration, newTimeSec) : Math.max(0, newTimeSec));
     targetSeekTimeRef.current = clamped; lastSeekTimestampRef.current = Date.now();
-    setCurrentTime(clamped); const video = videoRef.current;
+    clearBuffering(); setCurrentTime(clamped); const video = videoRef.current;
     if (video) { try { video.currentTime = clamped; } catch {} }
     const now = Date.now();
     if (now - lastSavedAtRef.current >= 1500) {
@@ -113,7 +130,7 @@ export function CrossPlatformHlsPlayer({
       setIsPlaying(false); if (video) video.pause();
       if (!completionSentRef.current && onLessonComplete) { completionSentRef.current = true; onLessonComplete(lessonId); }
     }
-  }, [duration, lessonId, onLessonComplete, storageKey]);
+  }, [clearBuffering, duration, lessonId, onLessonComplete, storageKey]);
 
   const handleSkip = useCallback((deltaSec: number) => {
     const isRapid = Date.now() - lastSeekTimestampRef.current < 650;
@@ -121,29 +138,16 @@ export function CrossPlatformHlsPlayer({
     handleSeek(base + deltaSec);
   }, [currentTime, handleSeek]);
 
-  const { ripple, handleVideoAreaClick } = useVideoGestures({
-    controlsVisibleRef, resetHideTimer, togglePlay, handleSkip,
-  });
-
-  const toggleMute = useCallback(() => {
-    const v = videoRef.current; setIsMuted((p) => { const n = !p; if (v) v.muted = n; return n; });
-  }, []);
-  const handleVolumeChange = useCallback((newVol: number) => {
-    const c = Math.max(0, Math.min(1, newVol)); setVolume(c); setIsMuted(c === 0);
-    const v = videoRef.current; if (v) { v.volume = c; v.muted = c === 0; }
-  }, []);
-  const handlePlaybackRateChange = useCallback((rate: number) => {
-    setPlaybackRate(rate); if (videoRef.current) videoRef.current.playbackRate = rate;
-  }, []);
+  const { ripple, handleVideoAreaClick } = useVideoGestures({ controlsVisibleRef, resetHideTimer, togglePlay, handleSkip });
+  const toggleMute = useCallback(() => { const v = videoRef.current; setIsMuted((p) => { const n = !p; if (v) v.muted = n; return n; }); }, []);
+  const handleVolumeChange = useCallback((newVol: number) => { const c = Math.max(0, Math.min(1, newVol)); setVolume(c); setIsMuted(c === 0); const v = videoRef.current; if (v) { v.volume = c; v.muted = c === 0; } }, []);
+  const handlePlaybackRateChange = useCallback((rate: number) => { setPlaybackRate(rate); if (videoRef.current) videoRef.current.playbackRate = rate; }, []);
   const handleQualityChange = useCallback((newQuality: string) => {
     setQuality(newQuality); const hls = hlsRef.current;
     if (!hls || !hls.levels?.length) return;
     if (newQuality === 'تلقائي') { hls.currentLevel = -1; return; }
     const targetH = parseInt(newQuality, 10);
-    if (Number.isFinite(targetH)) {
-      const idx = hls.levels.findIndex((lvl) => lvl.height === targetH);
-      if (idx !== -1) hls.currentLevel = idx;
-    }
+    if (Number.isFinite(targetH)) { const idx = hls.levels.findIndex((lvl) => lvl.height === targetH); if (idx !== -1) hls.currentLevel = idx; }
   }, []);
   const handleFullscreenToggle = useCallback(async () => {
     const container = containerRef.current; const video = videoRef.current;
@@ -152,10 +156,8 @@ export function CrossPlatformHlsPlayer({
       if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
         if (document.exitFullscreen) await document.exitFullscreen();
         else if ((document as any).webkitExitFullscreen) await (document as any).webkitExitFullscreen();
-        setIsFullscreen(false); return;
-      }
-      if (isFullscreen) { setIsFullscreen(false); return; }
-      if (container.requestFullscreen) { await container.requestFullscreen(); setIsFullscreen(true); }
+        setIsFullscreen(false);
+      } else if (container.requestFullscreen) { await container.requestFullscreen(); setIsFullscreen(true); }
       else if ((container as any).webkitRequestFullscreen) { await (container as any).webkitRequestFullscreen(); setIsFullscreen(true); }
       else if (video?.webkitEnterFullscreen) video.webkitEnterFullscreen();
       else setIsFullscreen(true);
@@ -163,7 +165,7 @@ export function CrossPlatformHlsPlayer({
       if (video?.webkitEnterFullscreen) { try { video.webkitEnterFullscreen(); } catch { setIsFullscreen((p) => !p); } }
       else setIsFullscreen((p) => !p);
     }
-  }, [isFullscreen]);
+  }, []);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement?.tagName;
@@ -194,18 +196,19 @@ export function CrossPlatformHlsPlayer({
           onContextMenu={(e) => e.preventDefault()}
           onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setDuration(d); }}
           onDurationChange={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setDuration(d); }}
-          onWaiting={() => setIsBuffering(true)} onSeeking={() => setIsBuffering(true)}
-          onSeeked={() => { setIsBuffering(false); const v = videoRef.current; if (v && Number.isFinite(v.currentTime)) setCurrentTime(v.currentTime); }}
-          onCanPlay={() => setIsBuffering(false)} onPlaying={() => { setIsBuffering(false); setIsPlaying(true); }}
+          onWaiting={handleWaiting}
+          onSeeked={() => {
+            clearBuffering(); const v = videoRef.current; const now = Date.now();
+            if (v && Number.isFinite(v.currentTime) && now - lastSeekTimestampRef.current >= 300) setCurrentTime(v.currentTime);
+          }}
+          onCanPlay={clearBuffering} onPlaying={() => { clearBuffering(); setIsPlaying(true); }}
           onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)}
           onTimeUpdate={(e) => {
             const v = e.currentTarget; const now = Date.now();
+            if (isBuffering) setIsBuffering(false);
             if (!v.seeking && now - lastSeekTimestampRef.current >= 450) setCurrentTime(v.currentTime);
             if (duration === 0 && Number.isFinite(v.duration) && v.duration > 0) setDuration(v.duration);
-            if (now - lastSavedAtRef.current >= 3000) {
-              try { localStorage.setItem(storageKey, String(Math.floor(v.currentTime))); } catch {}
-              lastSavedAtRef.current = now;
-            }
+            if (now - lastSavedAtRef.current >= 3000) { try { localStorage.setItem(storageKey, String(Math.floor(v.currentTime))); } catch {} lastSavedAtRef.current = now; }
           }}
           onEnded={() => {
             setIsPlaying(false); const v = videoRef.current;
@@ -216,9 +219,7 @@ export function CrossPlatformHlsPlayer({
         />
         <DoubleTapRippleOverlay ripple={ripple} />
         {isBuffering && isPlaying && !isEnded && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-emerald-400 border-t-transparent shadow-lg" />
-          </div>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25"><div className="h-10 w-10 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-emerald-400 border-t-transparent shadow-lg" /></div>
         )}
         {(!isPlaying || isEnded) && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/35 pointer-events-none transition-opacity">
@@ -240,8 +241,7 @@ export function CrossPlatformHlsPlayer({
         isPlaying={isPlaying} isMuted={isMuted} volume={volume} currentTime={currentTime} duration={duration}
         playbackRate={playbackRate} quality={quality} isFullscreen={isFullscreen} isVisible={areControlsVisible}
         onTogglePlay={togglePlay} onSeek={handleSeek} onSkip={handleSkip} onToggleMute={toggleMute}
-        onVolumeChange={handleVolumeChange} onPlaybackRateChange={handlePlaybackRateChange}
-        onQualityChange={handleQualityChange} onToggleFullscreen={handleFullscreenToggle}
+        onVolumeChange={handleVolumeChange} onPlaybackRateChange={handlePlaybackRateChange} onQualityChange={handleQualityChange} onToggleFullscreen={handleFullscreenToggle}
       />
     </div>
   );

@@ -71,3 +71,12 @@ input::-ms-clear {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Force strict LTR direction on video player seek inputs */
+input[type="range"][dir="ltr"],
+.group\/bar input[type="range"] {
+  direction: ltr !important;
+  writing-mode: horizontal-tb !important;
+}
+
+

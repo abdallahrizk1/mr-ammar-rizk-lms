@@ -382,4 +382,27 @@ test('Video Player Mobile Responsiveness & YouTube Gestures: 320px–768px fit &
   assert.ok(playerContent.includes('recoverMediaError'), 'Hls player must handle fatal media errors with recoverMediaError()');
   assert.ok(playerContent.includes('isBuffering'), 'Player must track buffering state for responsive feedback');
   assert.ok(playerContent.includes('lastSeekTimestampRef.current >= 450'), 'Timeupdate must not overwrite target position during active seek');
+
+  // 7. Strict LTR Seek Bar and Debounced Fast Buffering
+  assert.ok(
+    controlsContent.includes('dir="ltr"') && controlsContent.includes("direction: 'ltr'"),
+    'Seek bar input and controls must explicitly enforce dir="ltr" and direction: ltr to avoid reverse behavior in Arabic RTL pages'
+  );
+  assert.ok(
+    !playerContent.includes('onSeeking={() => setIsBuffering(true)}'),
+    'Seeking must not immediately trigger buffering spinner overlay to avoid stalling ±10s skips'
+  );
+  assert.ok(
+    playerContent.includes('handleWaiting') && playerContent.includes('clearBuffering'),
+    'Buffering spinner must be debounced via handleWaiting and cleared on play/seeked'
+  );
+  assert.ok(
+    playerContent.includes('lastSeekTimestampRef.current < 800'),
+    'Buffering overlay must be suppressed during and immediately after seek/skip gestures to prevent flashing spinner'
+  );
+  assert.ok(
+    controlsContent.includes('lastThrottledSeekRef') && controlsContent.includes('commitSeek'),
+    'Seek bar must throttle intermediate seeks and commit cleanly on pointer up'
+  );
 });
+
