@@ -362,4 +362,24 @@ test('Video Player Mobile Responsiveness & YouTube Gestures: 320px–768px fit &
   assert.ok(!playerContent.includes('DEMO_DURATION_SEC'), 'Must not have hardcoded demo duration');
   assert.ok(playerContent.includes('onLoadedMetadata') && playerContent.includes('onDurationChange') && playerContent.includes('onTimeUpdate'), 'Must sync real duration through native video events');
   assert.ok(playerContent.includes('webkitbeginfullscreen') && playerContent.includes('webkitendfullscreen'), 'Must bind iOS Safari webkitbeginfullscreen & webkitendfullscreen on video element');
+
+  // 5. Mobile non-fullscreen speed/quality button hiding and clean floating badge
+  assert.ok(
+    controlsContent.includes("isFullscreen ? 'block' : 'hidden sm:block'"),
+    'Speed and quality buttons must be hidden on mobile when not fullscreen, but visible in fullscreen or on sm screens'
+  );
+  assert.ok(
+    !rippleContent.includes('bg-emerald-500/15'),
+    'DoubleTapRippleOverlay must not use full-height split-screen tint that cuts video in half'
+  );
+  assert.ok(
+    playerContent.includes('backBufferLength: 90'),
+    'Hls player must configure backBufferLength of at least 90s for instant smooth seeking'
+  );
+
+  // 6. Fast buffering, HLS error recovery, preload auto, and seek stability
+  assert.ok(playerContent.includes('preload="auto"'), 'Video element must specify preload="auto" for fast buffering');
+  assert.ok(playerContent.includes('recoverMediaError'), 'Hls player must handle fatal media errors with recoverMediaError()');
+  assert.ok(playerContent.includes('isBuffering'), 'Player must track buffering state for responsive feedback');
+  assert.ok(playerContent.includes('lastSeekTimestampRef.current >= 450'), 'Timeupdate must not overwrite target position during active seek');
 });

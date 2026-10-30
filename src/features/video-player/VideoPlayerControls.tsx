@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize2, Minimize2, Gauge, Settings } from 'lucide-react';
 
 export interface VideoPlayerControlsProps {
@@ -30,6 +30,10 @@ export function VideoPlayerControls({
   const safeDuration = Math.max(1, duration);
   const isEnded = duration > 0 && currentTime >= duration;
   const progressPercent = Math.min(100, Math.max(0, (currentTime / safeDuration) * 100));
+
+  useEffect(() => {
+    setOpenMenu(null);
+  }, [isFullscreen]);
 
   return (
     <>
@@ -99,7 +103,7 @@ export function VideoPlayerControls({
           {/* Right Controls */}
           <div className="relative flex items-center gap-0.5 sm:gap-1.5 shrink-0">
             {/* Speed Selector */}
-            <div className="relative">
+            <div className={`relative ${isFullscreen ? 'block' : 'hidden sm:block'}`}>
               <button
                 type="button" onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === 'speed' ? null : 'speed'); }}
                 className="inline-flex items-center gap-0.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-1 sm:px-2 py-1 text-[9px] sm:text-xs font-bold transition active:scale-95 shrink-0"
@@ -126,7 +130,7 @@ export function VideoPlayerControls({
             </div>
 
             {/* Quality Selector */}
-            <div className="relative">
+            <div className={`relative ${isFullscreen ? 'block' : 'hidden sm:block'}`}>
               <button
                 type="button" onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === 'quality' ? null : 'quality'); }}
                 className="inline-flex items-center gap-0.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-1 sm:px-2 py-1 text-[9px] sm:text-xs font-bold transition active:scale-95 shrink-0"

@@ -17,10 +17,10 @@ export function DoubleTapRippleOverlay({ ripple }: DoubleTapRippleOverlayProps) 
       key={ripple.id}
       dir="ltr"
       className={`pointer-events-none absolute inset-y-0 ${
-        isLeft ? 'left-0 rounded-r-3xl' : 'right-0 rounded-l-3xl'
-      } w-2/5 sm:w-1/3 flex items-center justify-center bg-emerald-500/15 backdrop-blur-[2px] transition-all duration-300 z-30`}
+        isLeft ? 'left-6 sm:left-14' : 'right-6 sm:right-14'
+      } flex items-center justify-center z-30 transition-all duration-200`}
     >
-      <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-black/80 px-3.5 py-2 sm:px-4 sm:py-2.5 text-white border border-emerald-400/30 shadow-2xl">
+      <div className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-black/85 px-4 py-2.5 sm:px-5 sm:py-3 text-white border border-emerald-400/40 shadow-2xl backdrop-blur-md">
         {isLeft ? (
           <>
             <RotateCcw className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-400 stroke-[2.5]" />
