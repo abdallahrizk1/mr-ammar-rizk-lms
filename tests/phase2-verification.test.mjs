@@ -194,12 +194,99 @@ test('Forum Teacher Replies: Supports text, explanatory image (replyImageUrl), a
 });
 
 // 12. Student Storage: Core persistence helpers for Phase 2
-test('Student Storage: Implements mistake removal by questionId and exam submissions persistence', () => {
+test('Student Storage: Implements mistake removal by questionId, batch removal, and exam submissions persistence', () => {
   const storageFile = path.join(srcDir, 'lib', 'utils', 'student-storage.ts');
   const content = fs.readFileSync(storageFile, 'utf8');
   assert.ok(content.includes('removeMistakeByQuestionId'), 'removeMistakeByQuestionId must exist');
+  assert.ok(content.includes('removeMistakesByIds'), 'removeMistakesByIds must exist for multi-question mistake exams');
   assert.ok(content.includes('recordExamSubmission'), 'recordExamSubmission must exist');
   assert.ok(content.includes('recordWatchHistory'), 'recordWatchHistory must exist');
   assert.ok(content.includes('addStoredForumPost'), 'addStoredForumPost must exist');
 });
+
+// 13. Mistakes Bank Smart Summary & Question Count Selector
+test('Mistakes Bank: Shows mistake count summary first, allows choosing custom question count, and has button to browse answers', () => {
+  const mistakesBankFile = path.join(srcDir, 'features', 'account', 'MistakesBankTab.tsx');
+  const content = fs.readFileSync(mistakesBankFile, 'utf8');
+  assert.ok(content.includes('تحب تمتحن على كم سؤال'), 'Must ask student how many questions they want to be tested on');
+  assert.ok(content.includes('type="number"'), 'Must allow custom question count input');
+  assert.ok(content.includes('safePage'), 'Must clamp pagination page when mistakes are deleted');
+  assert.ok(content.includes('مشاهدة الأسئلة والإجابات الصحيحة'), 'Must provide a secondary button to browse wrong questions and correct answers');
+  assert.ok(content.includes("useState<'summary' | 'browse'>('summary')"), 'Must default to summary view instead of dumping all questions at once');
+});
+
+// 14. Pagination (10 per page) across all tables and lists
+test('Pagination: All tables and lists implement 10-per-page PaginationControls', () => {
+  const filesRequiringPagination = [
+    path.join(srcDir, 'features', 'account', 'WatchHistoryTab.tsx'),
+    path.join(srcDir, 'features', 'account', 'ProfileAndBillingTab.tsx'),
+    path.join(srcDir, 'features', 'account', 'SecurityAndSessionsTab.tsx'),
+    path.join(srcDir, 'features', 'account', 'QuizResultsTab.tsx'),
+    path.join(srcDir, 'features', 'account', 'HomeworkResultsTab.tsx'),
+    path.join(srcDir, 'features', 'account', 'MistakesBankTab.tsx'),
+    path.join(srcDir, 'app', '(student)', 'forum', 'page.tsx'),
+  ];
+
+  for (const file of filesRequiringPagination) {
+    const content = fs.readFileSync(file, 'utf8');
+    assert.ok(
+      content.includes('PaginationControls') && content.includes('PAGE_SIZE = 10'),
+      `File ${path.relative(projectRoot, file)} must use PaginationControls with PAGE_SIZE = 10`
+    );
+  }
+});
+
+// 15. PDFs & Answer Key Files: External Open, Full View, and Direct Download
+test('PDFs & Solution Files: Supports opening externally, full view, and downloading across courses and account modals', () => {
+  const lectureItemContent = fs.readFileSync(path.join(srcDir, 'features', 'courses', 'LectureItem.tsx'), 'utf8');
+  const solutionsContent = fs.readFileSync(path.join(srcDir, 'features', 'courses', 'LectureSolutionsBlock.tsx'), 'utf8');
+  const pdfModalContent = fs.readFileSync(path.join(srcDir, 'features', 'courses', 'PdfViewerModal.tsx'), 'utf8');
+  const answerReviewContent = fs.readFileSync(path.join(srcDir, 'features', 'account', 'AnswerReviewModal.tsx'), 'utf8');
+
+  assert.ok(lectureItemContent.includes('فتح خارجياً'), 'LectureItem must allow opening PDF externally');
+  assert.ok(solutionsContent.includes('فتح خارجياً') && solutionsContent.includes('عرض كامل') && solutionsContent.includes('تحميل'), 'LectureSolutionsBlock must allow full view, external open, and download for answer keys');
+  assert.ok(pdfModalContent.includes('فتح خارجياً') && pdfModalContent.includes('عرض كامل'), 'PdfViewerModal must support full-window toggle and external open');
+  assert.ok(answerReviewContent.includes('فتح خارجياً') && answerReviewContent.includes('عرض كامل') && answerReviewContent.includes('تحميل'), 'AnswerReviewModal must support full view, external open, and download');
+});
+
+// 16. Zero Native Browser Alerts or Confirms (In-App Notifications Only)
+test('In-App Notifications: Zero native window.alert or window.confirm calls in src/', () => {
+  function checkNoBrowserPopups(dir) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        checkNoBrowserPopups(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        assert.ok(
+          !/\b(window\.)?alert\s*\(/.test(content),
+          `Forbidden native alert() found in ${path.relative(projectRoot, fullPath)}`
+        );
+        assert.ok(
+          !/\b(window\.)?confirm\s*\(/.test(content),
+          `Forbidden native confirm() found in ${path.relative(projectRoot, fullPath)}`
+        );
+      }
+    }
+  }
+  checkNoBrowserPopups(srcDir);
+});
+
+// 17. Professional Video Player Controls & 20s Demo Duration
+test('Professional Video Player: Implements scrubbing bar, speed control (0.75x-2x), +/-10s skip, quality selector, muted={isMuted}, and 20s demo duration', () => {
+  const controlsFile = path.join(srcDir, 'features', 'video-player', 'VideoPlayerControls.tsx');
+  const playerFile = path.join(srcDir, 'features', 'video-player', 'CrossPlatformHlsPlayer.tsx');
+  const controlsContent = fs.readFileSync(controlsFile, 'utf8');
+  const playerContent = fs.readFileSync(playerFile, 'utf8');
+
+  assert.ok(controlsContent.includes('type="range"'), 'VideoPlayerControls must have an interactive range seek bar');
+  assert.ok(controlsContent.includes('SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2]'), 'Must support playback speed options');
+  assert.ok(controlsContent.includes('-10s') && controlsContent.includes('+10s'), 'Must support -10s and +10s skip buttons');
+  assert.ok(playerContent.includes('DEMO_DURATION_SEC = 20'), 'Must use 20-second demo duration instead of fabricated 48/54 minutes');
+  assert.ok(playerContent.includes('muted={isMuted}'), 'Must bind muted={isMuted} on <video> element instead of hardcoding muted');
+  assert.ok(playerContent.includes('fullscreenchange'), 'Must sync fullscreen state on Escape key');
+});
+
+
 

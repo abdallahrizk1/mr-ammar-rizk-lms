@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, XCircle, ChevronRight, ChevronLeft, HelpCircle } from 'lucide-react';
+import { X, CheckCircle2, XCircle, ChevronRight, ChevronLeft, HelpCircle, ExternalLink, Download, Maximize2, Minimize2 } from 'lucide-react';
 import { ExamResultSummary } from '@/lib/data/exam-types';
+import { openPdfExternally, downloadPdfFile } from '@/lib/utils/pdf-actions';
 
 interface AnswerReviewModalProps {
   result: ExamResultSummary;
@@ -14,6 +15,13 @@ const CHOICE_LETTERS = ['(أ)', '(ب)', '(ج)', '(د)'];
 export function AnswerReviewModal({ result, onClose }: AnswerReviewModalProps) {
   const [filter, setFilter] = useState<'all' | 'wrong' | 'correct'>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFullWindow, setIsFullWindow] = useState(false);
+  const [bannerMsg, setBannerMsg] = useState<string | null>(null);
+
+  const showBanner = (msg: string) => {
+    setBannerMsg(msg);
+    setTimeout(() => setBannerMsg(null), 3500);
+  };
 
   const totalCount = result.questions.length;
   const wrongCount = result.questions.filter((q) => result.studentAnswers[q.id] !== q.correctChoiceIndex).length;
@@ -32,13 +40,13 @@ export function AnswerReviewModal({ result, onClose }: AnswerReviewModalProps) {
   const isCurrentCorrect = activeQuestion && activeStudentChoice === activeQuestion.correctChoiceIndex;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" dir="rtl">
-      <div className="flex flex-col h-full sm:h-auto sm:max-h-[88vh] w-full sm:max-w-3xl rounded-none sm:rounded-3xl bg-white dark:bg-[#091D20] border-0 sm:border border-slate-200 dark:border-teal-500/30 shadow-2xl overflow-hidden">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm ${isFullWindow ? 'p-0' : 'p-0 sm:p-4'}`} dir="rtl">
+      <div className={`flex flex-col bg-white dark:bg-[#091D20] shadow-2xl overflow-hidden transition-all ${isFullWindow ? 'h-screen w-screen rounded-none border-0' : 'h-full sm:h-auto sm:max-h-[88vh] w-full sm:max-w-3xl rounded-none sm:rounded-3xl border-0 sm:border border-slate-200 dark:border-teal-500/30'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-100 dark:border-teal-500/20 bg-bio-teal/5">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 border-b border-slate-100 dark:border-teal-500/20 bg-bio-teal/5">
           <div className="min-w-0">
             <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-emerald-300 truncate">
-              {result.examName}
+              نموذج إجابة: {result.examName}
             </h2>
             <div className="mt-1 flex items-center gap-2 text-xs">
               <span className="font-bold text-bio-teal dark:text-emerald-400">الدرجة: {result.score} من {result.totalQuestions}</span>
@@ -46,10 +54,28 @@ export function AnswerReviewModal({ result, onClose }: AnswerReviewModalProps) {
               <span className="font-bold text-emerald-600 dark:text-emerald-400">النسبة: {result.percentage}%</span>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-[#071719] transition shrink-0" aria-label="إغلاق">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            <button type="button" onClick={() => setIsFullWindow((v) => !v)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-teal-500/30 bg-white dark:bg-[#091D20] px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition">
+              {isFullWindow ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span>{isFullWindow ? 'تصغير' : 'عرض كامل'}</span>
+            </button>
+            <button type="button" onClick={() => { openPdfExternally(`نموذج إجابة ${result.examName}`, totalCount); showBanner('تم فتح ملف نموذج الإجابة في نافذة خارجية مستقلة 📄'); }} className="inline-flex items-center gap-1 rounded-xl border border-bio-teal/30 dark:border-emerald-500/30 bg-bio-teal/5 hover:bg-bio-teal hover:text-white text-bio-teal dark:text-emerald-300 px-2.5 py-1.5 text-[11px] font-bold transition">
+              <ExternalLink className="h-3.5 w-3.5" /><span>فتح خارجياً</span>
+            </button>
+            <button type="button" onClick={() => { downloadPdfFile(`نموذج إجابة ${result.examName}`, totalCount); showBanner('جاري تحميل ملف نموذج الإجابة إلى جهازك مباشرة ✅'); }} className="inline-flex items-center gap-1 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 text-white px-2.5 py-1.5 text-[11px] font-bold transition">
+              <Download className="h-3.5 w-3.5" /><span>تحميل</span>
+            </button>
+            <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-[#071719] transition" aria-label="إغلاق">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
+
+        {bannerMsg && (
+          <div className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 text-xs font-bold">
+            <CheckCircle2 className="h-4 w-4 shrink-0" /><span>{bannerMsg}</span>
+          </div>
+        )}
 
         {/* 3 Smart Filter Buttons (Clean 3-column grid) */}
         <div className="p-2 sm:p-3 bg-slate-50 dark:bg-[#071719] border-b border-slate-100 dark:border-teal-500/15">

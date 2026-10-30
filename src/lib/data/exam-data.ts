@@ -59,113 +59,107 @@ export const SAMPLE_EXAM_QUESTIONS: ExamQuestion[] = [
   },
 ];
 
-export const SAMPLE_QUIZ_RESULTS: ExamResultSummary[] = [
-  {
-    id: 'res-q-1',
-    examName: 'كويز المحاضرة الأولى: الدعامة في النبات',
-    totalQuestions: 15,
-    score: 14,
-    percentage: 93,
-    solvedCount: 15,
-    correctCount: 14,
-    startTime: '25 أكتوبر 2026 - 06:15 م',
-    endTime: '25 أكتوبر 2026 - 06:33 م',
-    questions: SAMPLE_EXAM_QUESTIONS,
-    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': 1, 'q-4': 0, 'q-5': 0 },
-  },
-  {
-    id: 'res-q-2',
-    examName: 'كويز المحاضرة الثانية: الهيكل المحوري',
-    totalQuestions: 15,
-    score: 13,
-    percentage: 87,
-    solvedCount: 15,
-    correctCount: 13,
-    startTime: '28 أكتوبر 2026 - 08:00 م',
-    endTime: '28 أكتوبر 2026 - 08:18 م',
-    questions: SAMPLE_EXAM_QUESTIONS,
-    studentAnswers: { 'q-1': 1, 'q-2': 3, 'q-3': 1, 'q-4': 1, 'q-5': 0 },
-  },
+const QUIZ_TITLES = [
+  'كويز المحاضرة 1: الدعامة الفسيولوجية في النبات',
+  'كويز المحاضرة 2: الدعامة التركيبية والأنسجة النباتية',
+  'كويز المحاضرة 3: العمود الفقري والجمجمة والقفص الصدري',
+  'كويز المحاضرة 4: الهيكل الطرفي والأحزمة العظمية',
+  'كويز المحاضرة 5: الغضاريف والمفاصل والأربطة والأوتار',
+  'كويز المحاضرة 6: الحركة في النبات (اللمس والانتحاء والشد)',
+  'كويز المحاضرة 7: تركيب العضلة الهيكلية والقطعة العضلية',
+  'كويز المحاضرة 8: آلية انقباض العضلة ونظرية الخيوط المنزلقة',
+  'كويز المحاضرة 9: الوحدة الحركية والإجهاد والشد العضلي',
+  'كويز المحاضرة 10: مراجعة شاملة على الباب الأول',
+  'كويز المحاضرة 11: التنسيق الهرموني والغدة النخامية',
+  'كويز المحاضرة 12: الغدة الدرقية والجاردرقية والكظرية',
 ];
 
-export const SAMPLE_HOMEWORK_RESULTS: ExamResultSummary[] = [
-  {
-    id: 'res-hw-1',
-    examName: 'واجب المحاضرة الأولى: أسئلة الفهم والربط في الدعامة',
-    totalQuestions: 20,
-    score: 18,
-    percentage: 90,
-    solvedCount: 20,
-    correctCount: 18,
-    startTime: '26 أكتوبر 2026 - 04:30 م',
-    endTime: '26 أكتوبر 2026 - 05:15 م',
-    questions: SAMPLE_EXAM_QUESTIONS,
-    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': 0, 'q-4': 1, 'q-5': 0 },
-  },
-  {
-    id: 'res-hw-2',
-    examName: 'واجب المحاضرة الثانية: مسائل وتدريبات الهيكل العظمي',
+export const SAMPLE_QUIZ_RESULTS: ExamResultSummary[] = QUIZ_TITLES.map((examName, i) => {
+  const score = 15 - (i % 3);
+  return {
+    id: `res-q-${i + 1}`,
+    examName,
     totalQuestions: 15,
-    score: 14,
-    percentage: 93,
+    score,
+    percentage: Math.round((score / 15) * 100),
     solvedCount: 15,
-    correctCount: 14,
-    startTime: '29 أكتوبر 2026 - 07:10 م',
-    endTime: '29 أكتوبر 2026 - 07:45 م',
+    correctCount: score,
+    startTime: `${18 + (i % 12)} أكتوبر 2026 - 06:00 م`,
+    endTime: `${18 + (i % 12)} أكتوبر 2026 - 06:18 م`,
     questions: SAMPLE_EXAM_QUESTIONS,
-    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': 1, 'q-4': 1, 'q-5': 2 },
-  },
+    studentAnswers: { 'q-1': 1, 'q-2': i % 2 === 0 ? 2 : 3, 'q-3': 1, 'q-4': 0, 'q-5': 0 },
+  };
+});
+
+const HW_TITLES = [
+  'واجب المحاضرة 1: أسئلة الفهم والربط في الدعامة الفسيولوجية',
+  'واجب المحاضرة 2: تدريبات ترسيب السليلوز واللجنين والسيوبرين',
+  'واجب المحاضرة 3: مسائل أرقام الفقرات والقفص الصدري',
+  'واجب المحاضرة 4: تطبيقات الحزام الصدري والحوضي',
+  'واجب المحاضرة 5: تدريبات المفاصل الزلالية وتمزق وتر أخيل',
+  'واجب المحاضرة 6: أسئلة المحاليق والجذور الشادة في النبات',
+  'واجب المحاضرة 7: مسائل المناطق المضيئة والداكنة في الساركومير',
+  'واجب المحاضرة 8: أسئلة السيال العصبي وأيونات الكالسيوم',
+  'واجب المحاضرة 9: مسائل حساب عدد الوحدات الحركية والألياف',
+  'واجب المحاضرة 10: بنك أسئلة الامتحانات السابقة على الباب الأول',
+  'واجب المحاضرة 11: تدريبات أوكسينات النبات والغدة النخامية',
+  'واجب المحاضرة 12: تطبيقات هرمونات الأيض والاتزان الداخلي',
 ];
+
+export const SAMPLE_HOMEWORK_RESULTS: ExamResultSummary[] = HW_TITLES.map((examName, i) => {
+  const score = 20 - (i % 4);
+  return {
+    id: `res-hw-${i + 1}`,
+    examName,
+    totalQuestions: 20,
+    score,
+    percentage: Math.round((score / 20) * 100),
+    solvedCount: 20,
+    correctCount: score,
+    startTime: `${18 + (i % 12)} أكتوبر 2026 - 07:30 م`,
+    endTime: `${18 + (i % 12)} أكتوبر 2026 - 08:10 م`,
+    questions: SAMPLE_EXAM_QUESTIONS,
+    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': i % 2 === 0 ? 0 : 1, 'q-4': 1, 'q-5': 0 },
+  };
+});
 
 export const SAMPLE_MISTAKES: StudentMistakeItem[] = [
-  {
-    id: 'mistake-1',
-    category: 'quiz',
-    sourceTitle: 'كويز المحاضرة الأولى: الدعامة في النبات',
-    questionId: 'q-4',
-    questionText: 'الرباط الصليبي في مفصل الركبة يصل بين عظمتي:',
-    choices: ['الفخذ والشظية', 'الفخذ والقصبة', 'القصبة والشظية', 'الفخذ والرضفة'],
-    studentChoiceIndex: 0,
-    correctChoiceIndex: 1,
-    explanation: 'الرباط الصليبي يربط الفخذ بالقصبة، بينما الرباط الجانبي يربط الفخذ بالشظية.',
-  },
-  {
-    id: 'mistake-2',
-    category: 'quiz',
-    sourceTitle: 'كويز المحاضرة الثانية: الهيكل المحوري',
-    questionId: 'q-2',
-    questionText: 'ما المادة الكيميائية الصلبة غير المنفذة للماء التي تترسب على جدر خلايا نسيج الفلين في سيقان النباتات الخشبية؟',
-    choices: ['السليلوز', 'البكتين', 'السيوبرين', 'اللجنين'],
-    studentChoiceIndex: 3,
-    correctChoiceIndex: 2,
-    explanation: 'اللجنين يترسب في أوعية الخشب، بينما نسيج الفلين يترسب فيه السيوبرين.',
-  },
-  {
-    id: 'mistake-3',
-    category: 'homework',
-    sourceTitle: 'واجب المحاضرة الأولى: أسئلة الفهم والربط',
-    questionId: 'q-3',
-    questionText: 'كم عدد الفقرات العظمية في العمود الفقري للإنسان التي تتمفصل مع الضلوع الصدرية؟',
-    choices: ['7 فقرات', '12 فقرة', '5 فقرات', '24 فقرة'],
-    studentChoiceIndex: 0,
-    correctChoiceIndex: 1,
-    explanation: 'الـ 7 فقرات هي العنقية، أما الفقرات المتصلة بالضلوع هي الـ 12 فقرة ظهرية.',
-  },
+  ...QUIZ_TITLES.map((sourceTitle, i): StudentMistakeItem => {
+    const q = SAMPLE_EXAM_QUESTIONS[i % SAMPLE_EXAM_QUESTIONS.length];
+    return {
+      id: `mistake-${i + 1}`,
+      category: 'quiz',
+      sourceTitle,
+      questionId: i < SAMPLE_EXAM_QUESTIONS.length ? q.id : `${q.id}-v${i + 1}`,
+      questionText: q.questionText,
+      diagramTitle: q.diagramTitle || (i === 0 ? 'تشريح أربطة مفصل الركبة في الإنسان' : undefined),
+      choices: q.choices,
+      studentChoiceIndex: (q.correctChoiceIndex + 2) % 4,
+      correctChoiceIndex: q.correctChoiceIndex,
+      explanation: q.explanation,
+    };
+  }),
+  ...HW_TITLES.slice(0, 4).map((sourceTitle, i): StudentMistakeItem => {
+    const q = SAMPLE_EXAM_QUESTIONS[(i + 2) % SAMPLE_EXAM_QUESTIONS.length];
+    return {
+      id: `mistake-hw-${i + 1}`,
+      category: 'homework',
+      sourceTitle,
+      questionId: i < 2 ? q.id : `${q.id}-hw-${i + 1}`,
+      questionText: q.questionText,
+      diagramTitle: q.diagramTitle || 'توزيع فقرات العمود الفقري والضلوع',
+      choices: q.choices,
+      studentChoiceIndex: (q.correctChoiceIndex + 1) % 4,
+      correctChoiceIndex: q.correctChoiceIndex,
+      explanation: q.explanation,
+    };
+  }),
 ];
 
-export const SAMPLE_WATCH_HISTORY: WatchHistoryItem[] = [
-  {
-    id: 'w-1',
-    videoTitle: 'فيديو شرح المحاضرة الأولى: الدعامة في النبات',
-    courseTitle: 'الكورس الشامل لمادة الأحياء للثانوية العامة',
-    watchDuration: '48 دقيقة كاملة (100%)',
-    watchDate: '25 أكتوبر 2026 - 05:30 م',
-  },
-  {
-    id: 'w-2',
-    videoTitle: 'فيديو شرح الهيكل المحوري: العمود الفقري والجمجمة',
-    courseTitle: 'الكورس الشامل لمادة الأحياء للثانوية العامة',
-    watchDuration: '54 دقيقة كاملة (100%)',
-    watchDate: '28 أكتوبر 2026 - 07:15 م',
-  },
-];
+export const SAMPLE_WATCH_HISTORY: WatchHistoryItem[] = Array.from({ length: 12 }, (_, i) => ({
+  id: `w-${i + 1}`,
+  videoTitle: QUIZ_TITLES[i].replace('كويز', 'فيديو شرح'),
+  courseTitle: 'الكورس الشامل في الأحياء للثانوية العامة 2027',
+  watchDuration: i % 3 === 0 ? 'مشاهدة نشطة' : '00:20 ثانية (مكتمل 100%)',
+  watchDate: `${19 + (i % 11)} أكتوبر 2026 - 0${(i % 8) + 1}:30 م`,
+}));

@@ -13,8 +13,8 @@ export const SAMPLE_MODULES: CourseModule[] = [
         isUnlocked: true,
         video: {
           title: 'فيديو شرح المحاضرة الأولى: الدعامة في النبات',
-          duration: '48 دقيقة',
-          durationSec: 2880,
+          duration: '20 ثانية (فيديو تجريبي)',
+          durationSec: 20,
           hlsUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
         },
         pdf: {
@@ -66,8 +66,8 @@ export const SAMPLE_MODULES: CourseModule[] = [
         isUnlocked: true,
         video: {
           title: 'فيديو شرح الهيكل المحوري: العمود الفقري والجمجمة',
-          duration: '54 دقيقة',
-          durationSec: 3240,
+          duration: '20 ثانية (فيديو تجريبي)',
+          durationSec: 20,
           hlsUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
         },
         pdf: {
@@ -117,8 +117,8 @@ export const SAMPLE_MODULES: CourseModule[] = [
         isUnlocked: false,
         video: {
           title: 'فيديو شرح الهيكل الطرفي والأنسجة الداعمة',
-          duration: '60 دقيقة',
-          durationSec: 3600,
+          duration: '20 ثانية (فيديو تجريبي)',
+          durationSec: 20,
           hlsUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
         },
         pdf: {

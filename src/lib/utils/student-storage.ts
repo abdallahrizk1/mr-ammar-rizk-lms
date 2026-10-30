@@ -3,11 +3,11 @@ import { SAMPLE_MISTAKES, SAMPLE_WATCH_HISTORY } from '@/lib/data/exam-data';
 import { EnrolledCourseItem, INITIAL_ENROLLED_COURSES } from '@/lib/data/student-profile-data';
 import { ForumPostItem, INITIAL_FORUM_POSTS } from '@/lib/data/forum-data';
 
-const MISTAKES_KEY = 'lms_student_mistakes_bank';
+const MISTAKES_KEY = 'lms_student_mistakes_bank_v5';
 const ENROLLED_COURSES_KEY = 'lms_student_enrolled_courses';
 const LOGOUT_STATS_KEY = 'lms_student_logout_stats';
 const EXAM_SUBMISSIONS_KEY = 'lms_student_exam_submissions';
-const WATCH_HISTORY_KEY = 'lms_student_watch_history';
+const WATCH_HISTORY_KEY = 'lms_student_watch_history_v4';
 const FORUM_POSTS_KEY = 'lms_student_forum_posts';
 
 export interface ExamSubmissionRecord {
@@ -44,6 +44,14 @@ export function saveStoredMistakes(mistakes: StudentMistakeItem[]): void {
 export function removeMistakeById(mistakeId: string): StudentMistakeItem[] {
   const current = getStoredMistakes();
   const updated = current.filter((m) => m.id !== mistakeId);
+  saveStoredMistakes(updated);
+  return updated;
+}
+
+export function removeMistakesByIds(mistakeIds: string[]): StudentMistakeItem[] {
+  const idSet = new Set(mistakeIds);
+  const current = getStoredMistakes();
+  const updated = current.filter((m) => !idSet.has(m.id));
   saveStoredMistakes(updated);
   return updated;
 }

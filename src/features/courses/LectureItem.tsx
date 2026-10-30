@@ -2,17 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  Lock,
-  PlayCircle,
-  FileText,
-  Award,
-  BookOpen,
-  Download,
-  Eye,
-  ChevronDown,
-} from 'lucide-react';
+import { Lock, PlayCircle, FileText, Award, BookOpen, Download, Eye, ExternalLink, ChevronDown } from 'lucide-react';
 import { LectureMaterials } from '@/lib/data/courses-types';
+import { openPdfExternally, downloadPdfFile } from '@/lib/utils/pdf-actions';
 import { LectureSolutionsBlock } from './LectureSolutionsBlock';
 
 interface LectureItemProps {
@@ -21,17 +13,21 @@ interface LectureItemProps {
   onPlayVideo: (hlsUrl: string, title: string, lessonId: string) => void;
   onOpenPdf: (title: string, pagesCount: number) => void;
   onOpenQuizModal: (lecture: LectureMaterials) => void;
+  onNotify?: (message: string) => void;
 }
 
-export function LectureItem({
-  courseId,
-  lecture,
-  onPlayVideo,
-  onOpenPdf,
-  onOpenQuizModal,
-}: LectureItemProps) {
-  // Accordion state: Lecture 1 is open by default, others collapsible
+export function LectureItem({ courseId, lecture, onPlayVideo, onOpenPdf, onOpenQuizModal, onNotify }: LectureItemProps) {
   const [isOpen, setIsOpen] = useState(lecture.isUnlocked && lecture.order === 1);
+
+  const handleOpenExternalPdf = () => {
+    openPdfExternally(lecture.pdf.title, lecture.pdf.pagesCount);
+    if (onNotify) onNotify(`تم فتح "${lecture.pdf.title}" في نافذة خارجية مستقلة 📄`);
+  };
+
+  const handleDownloadPdf = () => {
+    downloadPdfFile(lecture.pdf.title, lecture.pdf.pagesCount);
+    if (onNotify) onNotify(`تم بدء تحميل "${lecture.pdf.title}" إلى جهازك بنجاح ✅`);
+  };
 
   return (
     <div
@@ -42,7 +38,6 @@ export function LectureItem({
       }`}
       dir="rtl"
     >
-      {/* Interactive Accordion Header */}
       <div
         role="button"
         tabIndex={lecture.isUnlocked ? 0 : -1}
@@ -58,22 +53,12 @@ export function LectureItem({
         }`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
-              lecture.isUnlocked
-                ? 'bg-bio-teal/10 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400'
-                : 'bg-slate-200 text-slate-500 dark:bg-slate-800'
-            }`}
-          >
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${lecture.isUnlocked ? 'bg-bio-teal/10 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-200 text-slate-500 dark:bg-slate-800'}`}>
             {lecture.order}
           </div>
           <div className="min-w-0">
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-              {lecture.title}
-            </h3>
-            <p className="text-[11px] text-slate-500 dark:text-teal-200/60 mt-0.5 truncate">
-              {lecture.description}
-            </p>
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">{lecture.title}</h3>
+            <p className="text-[11px] text-slate-500 dark:text-teal-200/60 mt-0.5 truncate">{lecture.description}</p>
           </div>
         </div>
 
@@ -86,14 +71,8 @@ export function LectureItem({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="hidden md:inline-flex text-[11px] text-slate-400 font-medium">
-                {isOpen ? 'إخفاء المحتويات' : 'عرض المحتويات'}
-              </span>
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-teal-300 transition ${
-                  isOpen ? 'text-bio-teal dark:text-emerald-400' : ''
-                }`}
-              >
+              <span className="hidden md:inline-flex text-[11px] text-slate-400 font-medium">{isOpen ? 'إخفاء المحتويات' : 'عرض المحتويات'}</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-teal-300 transition ${isOpen ? 'text-bio-teal dark:text-emerald-400' : ''}`}>
                 <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </div>
             </div>
@@ -101,7 +80,6 @@ export function LectureItem({
         </div>
       </div>
 
-      {/* Accordion Expandable Contents */}
       {lecture.isUnlocked && isOpen && (
         <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 pt-1 space-y-2.5 border-t border-slate-100 dark:border-teal-500/15 animate-in fade-in duration-150">
           {/* Element 1: Video */}
@@ -111,21 +89,12 @@ export function LectureItem({
                 <PlayCircle className="h-4 w-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                  {lecture.video.title}
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
-                  المدة: {lecture.video.duration} • مشغل HLS HD
-                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">{lecture.video.title}</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">المدة: {lecture.video.duration} • جودة عالية 1080p</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => onPlayVideo(lecture.video.hlsUrl, lecture.video.title, lecture.id)}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition active:scale-95"
-            >
-              <PlayCircle className="h-3.5 w-3.5" />
-              <span>مشاهدة الفيديو</span>
+            <button type="button" onClick={() => onPlayVideo(lecture.video.hlsUrl, lecture.video.title, lecture.id)} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-3.5 py-2 text-xs font-bold shadow-sm transition active:scale-95">
+              <PlayCircle className="h-3.5 w-3.5" /><span>مشاهدة المحاضرة</span>
             </button>
           </div>
 
@@ -136,30 +105,19 @@ export function LectureItem({
                 <FileText className="h-4 w-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                  {lecture.pdf.title}
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
-                  المذكرة الكاملة • {lecture.pdf.pagesCount} صفحة
-                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">{lecture.pdf.title}</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">المذكرة الكاملة • {lecture.pdf.pagesCount} صفحة</span>
               </div>
             </div>
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => onOpenPdf(lecture.pdf.title, lecture.pdf.pagesCount)}
-                className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 text-xs font-bold hover:bg-slate-100 transition"
-              >
-                <Eye className="h-3 w-3" />
-                <span>قراءة المذكرة داخل المنصة</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button type="button" onClick={() => onOpenPdf(lecture.pdf.title, lecture.pdf.pagesCount)} className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 text-xs font-bold hover:bg-slate-100 transition active:scale-95">
+                <Eye className="h-3.5 w-3.5" /><span>عرض بالمنصة</span>
               </button>
-              <button
-                type="button"
-                onClick={() => alert('تم بدء تحميل المذكرة مباشرة')}
-                className="inline-flex items-center gap-1 rounded-xl bg-bio-teal/10 hover:bg-bio-teal text-bio-teal hover:text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-600 dark:text-emerald-300 dark:hover:text-white px-2.5 py-1.5 text-xs font-bold transition"
-              >
-                <Download className="h-3 w-3" />
-                <span>تحميل PDF</span>
+              <button type="button" onClick={handleOpenExternalPdf} className="inline-flex items-center gap-1 rounded-xl border border-bio-teal/30 dark:border-emerald-500/30 bg-bio-teal/5 hover:bg-bio-teal hover:text-white text-bio-teal dark:text-emerald-300 px-2.5 py-1.5 text-xs font-bold transition active:scale-95">
+                <ExternalLink className="h-3.5 w-3.5" /><span>فتح خارجياً</span>
+              </button>
+              <button type="button" onClick={handleDownloadPdf} className="inline-flex items-center gap-1 rounded-xl bg-bio-teal/10 hover:bg-bio-teal text-bio-teal hover:text-white dark:bg-emerald-500/10 dark:hover:bg-emerald-600 dark:text-emerald-300 dark:hover:text-white px-2.5 py-1.5 text-xs font-bold transition active:scale-95">
+                <Download className="h-3.5 w-3.5" /><span>تحميل PDF</span>
               </button>
             </div>
           </div>
@@ -171,22 +129,15 @@ export function LectureItem({
                 <Award className="h-4 w-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                  {lecture.quiz.title}
-                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">{lecture.quiz.title}</span>
                 <span className="text-[10px] text-slate-400 block mt-0.5">
                   {lecture.quiz.questionsCount} سؤال • {lecture.quiz.durationMinutes} دقيقة
                   {lecture.quiz.isPassed && ` • تم الاجتياز بنتيجة ${lecture.quiz.studentScore}/${lecture.quiz.questionsCount} ✅`}
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenQuizModal(lecture)}
-              className="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition active:scale-95"
-            >
-              <Award className="h-3.5 w-3.5" />
-              <span>{lecture.quiz.isPassed ? 'إعادة / تفاصيل الكويز' : 'ابدأ الامتحان الآن'}</span>
+            <button type="button" onClick={() => onOpenQuizModal(lecture)} className="inline-flex items-center justify-center gap-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition active:scale-95">
+              <Award className="h-3.5 w-3.5" /><span>{lecture.quiz.isPassed ? 'إعادة / تفاصيل الكويز' : 'ابدأ الامتحان الآن'}</span>
             </button>
           </div>
 
@@ -197,31 +148,19 @@ export function LectureItem({
                 <BookOpen className="h-4 w-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                  {lecture.homework.title}
-                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">{lecture.homework.title}</span>
                 <span className="text-[10px] text-slate-400 block mt-0.5">
                   {lecture.homework.questionsCount} سؤال • الدرجة: {lecture.homework.totalGrade}
                   {lecture.homework.isSubmitted && ` • تم التسليم (${lecture.homework.studentScore}/${lecture.homework.totalGrade}) ✅`}
                 </span>
               </div>
             </div>
-            <Link
-              href={`/courses/${courseId}/exam/${lecture.homework.id}?type=homework`}
-              prefetch={false}
-              className="inline-flex items-center justify-center gap-1 rounded-xl bg-[#134647] hover:bg-bio-teal dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition active:scale-95"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              <span>{lecture.homework.isSubmitted ? 'إعادة حل الواجب' : 'ابدأ حل الواجب'}</span>
+            <Link href={`/courses/${courseId}/exam/${lecture.homework.id}?type=homework`} prefetch={false} className="inline-flex items-center justify-center gap-1 rounded-xl bg-[#134647] hover:bg-bio-teal dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-sm transition active:scale-95">
+              <BookOpen className="h-3.5 w-3.5" /><span>{lecture.homework.isSubmitted ? 'إعادة حل الواجب' : 'ابدأ حل الواجب'}</span>
             </Link>
           </div>
 
-          {/* Element 5: Locked / Unlocked Solution Videos & PDFs */}
-          <LectureSolutionsBlock
-            lecture={lecture}
-            onPlayVideo={onPlayVideo}
-            onOpenPdf={onOpenPdf}
-          />
+          <LectureSolutionsBlock lecture={lecture} onPlayVideo={onPlayVideo} onOpenPdf={onOpenPdf} onNotify={onNotify} />
         </div>
       )}
     </div>

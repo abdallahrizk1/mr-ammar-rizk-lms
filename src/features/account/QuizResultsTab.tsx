@@ -3,14 +3,21 @@
 import React, { useState } from 'react';
 import { Award, Eye } from 'lucide-react';
 import { ExamResultSummary } from '@/lib/data/exam-types';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 import { AnswerReviewModal } from './AnswerReviewModal';
 
 interface QuizResultsTabProps {
   quizResults: ExamResultSummary[];
 }
 
+const PAGE_SIZE = 10;
+
 export function QuizResultsTab({ quizResults }: QuizResultsTabProps) {
   const [selectedResult, setSelectedResult] = useState<ExamResultSummary | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const paginatedResults = quizResults.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -27,14 +34,14 @@ export function QuizResultsTab({ quizResults }: QuizResultsTabProps) {
 
         {/* Mobile Responsive Cards (< md) */}
         <div className="md:hidden space-y-2.5">
-          {quizResults.map((item) => (
+          {paginatedResults.map((item, idx) => (
             <div
               key={item.id}
               className="rounded-2xl border border-slate-200/80 dark:border-teal-500/20 bg-slate-50 dark:bg-[#071719] p-3 space-y-2.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-xs text-slate-900 dark:text-white line-clamp-1">
-                  {item.examName}
+                  {startIndex + idx + 1}. {item.examName}
                 </span>
                 <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 text-xs font-black shrink-0">
                   {item.percentage}%
@@ -76,9 +83,9 @@ export function QuizResultsTab({ quizResults }: QuizResultsTabProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-teal-500/10">
-              {quizResults.map((item, idx) => (
+              {paginatedResults.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-[#071719] transition">
-                  <td className="py-2.5 px-2 font-bold text-slate-400">{idx + 1}</td>
+                  <td className="py-2.5 px-2 font-bold text-slate-400">{startIndex + idx + 1}</td>
                   <td className="py-2.5 px-2.5 font-semibold text-slate-900 dark:text-white">
                     {item.examName}
                   </td>
@@ -108,9 +115,16 @@ export function QuizResultsTab({ quizResults }: QuizResultsTabProps) {
             </tbody>
           </table>
         </div>
+
+        <PaginationControls
+          currentPage={currentPage}
+          totalItems={quizResults.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+          itemLabel="امتحان"
+        />
       </div>
 
-      {/* Answer Review Modal */}
       {selectedResult && (
         <AnswerReviewModal
           result={selectedResult}

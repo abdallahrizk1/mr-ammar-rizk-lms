@@ -86,50 +86,45 @@ export const INITIAL_ENROLLED_COURSES: EnrolledCourseItem[] = [
   },
 ];
 
-export const INITIAL_INVOICES: InvoiceItem[] = [
-  {
-    id: 'INV-2026-081',
-    courseTitle: 'الكورس الشامل لمادة الأحياء للثانوية العامة',
-    amount: '1200 ج.م',
-    method: 'فودافون كاش',
-    date: '15 أغسطس 2026',
-    status: 'مفعل نهائياً',
-  },
-  {
-    id: 'INV-2026-114',
-    courseTitle: 'كورس الباب الثاني: التنسيق الهرموني',
-    amount: '350 ج.م',
-    method: 'إنستا باي',
-    date: '28 أكتوبر 2026',
-    status: 'تفعيل مؤقت قيد المراجعة',
-  },
-  {
-    id: 'INV-2026-003',
-    courseTitle: 'مذكرة بنك الأسئلة الشامل 2027 (مطبوعة)',
-    amount: '150 ج.م',
-    method: 'كود سنتر',
-    date: '1 سبتمبر 2026',
-    status: 'مفعل نهائياً',
-  },
+const INVOICE_TITLES = [
+  'الكورس الشامل لمادة الأحياء للثانوية العامة 2027',
+  'كورس الباب الثاني: التنسيق الهرموني في الكائنات الحية',
+  'مذكرة بنك الأسئلة الشامل 2027 (نسخة مطبوعة)',
+  'كورس الباب الأول: الدعامة والحركة في الكائنات الحية',
+  'مذكرة أطلس الرسومات التشريحية والبيانية',
+  'ورشة حل مسائل البيولوجيا الجزيئية و DNA',
+  'كورس التكاثر في الكائنات الحية (الجزء الأول)',
+  'كورس التكاثر في الإنسان (الجزء الثاني)',
+  'كورس المناعة في النبات والإنسان',
+  'باقة المراجعة الشهرية الأولى (أكتوبر)',
+  'باقة المراجعة الشهرية الثانية (نوفمبر)',
+  'اختبارات كتاب الامتحان والتميز التفاعلية',
 ];
 
-export const INITIAL_LOGIN_SESSIONS: LoginSessionItem[] = [
-  {
-    id: 's-1',
-    deviceType: 'mobile',
-    deviceName: 'iPhone 15 Pro Max',
-    os: 'iOS 18.1',
-    browser: 'Safari',
-    lastActive: 'نشط الآن',
-    loginDate: '30 أكتوبر 2026 - 02:15 م',
-  },
-  {
-    id: 's-2',
-    deviceType: 'desktop',
-    deviceName: 'Windows PC (منزل)',
-    os: 'Windows 11',
-    browser: 'Chrome 130',
-    lastActive: 'منذ يومين',
-    loginDate: '28 أكتوبر 2026 - 08:30 م',
-  },
+const PAYMENT_METHODS: Array<'كود سنتر' | 'فودافون كاش' | 'إنستا باي'> = [
+  'فودافون كاش',
+  'إنستا باي',
+  'كود سنتر',
 ];
+
+export const INITIAL_INVOICES: InvoiceItem[] = INVOICE_TITLES.map((courseTitle, i) => ({
+  id: `INV-2026-${String(101 + i).padStart(3, '0')}`,
+  courseTitle,
+  amount: i === 0 ? '1200 ج.م' : i % 3 === 2 ? '150 ج.م' : '350 ج.م',
+  method: PAYMENT_METHODS[i % 3],
+  date: `${10 + i} أكتوبر 2026`,
+  status: i === 1 ? 'تفعيل مؤقت قيد المراجعة' : 'مفعل نهائياً',
+}));
+
+export const INITIAL_LOGIN_SESSIONS: LoginSessionItem[] = Array.from({ length: 12 }, (_, i) => {
+  const isMobile = i % 2 === 0;
+  return {
+    id: `s-${i + 1}`,
+    deviceType: isMobile ? 'mobile' : 'desktop',
+    deviceName: isMobile ? 'iPhone 15 Pro Max' : 'Windows PC (منزل)',
+    os: isMobile ? 'iOS 18.1' : 'Windows 11',
+    browser: isMobile ? 'Safari Mobile' : 'Google Chrome 130',
+    lastActive: i === 0 ? 'نشط الآن' : `منذ ${i} يوم`,
+    loginDate: `${30 - (i % 20)} أكتوبر 2026 - 0${(i % 8) + 1}:15 م`,
+  };
+});

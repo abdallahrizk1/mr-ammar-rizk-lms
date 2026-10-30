@@ -35,8 +35,8 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
   const [submissionResult, setSubmissionResult] = useState<ExamSubmissionResult | null>(null);
   const [wrongCount, setWrongCount] = useState(0);
+  const [unansweredWarningCount, setUnansweredWarningCount] = useState<number | null>(null);
 
-  // Restore draft answers from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -48,7 +48,6 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
     } catch {}
   }, [storageKey]);
 
-  // Save draft answers to localStorage
   const handleSelectChoice = (choiceIndex: number) => {
     const q = questions[currentIndex];
     if (!q) return;
@@ -67,18 +66,9 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
     } catch {}
   };
 
-  const handleFinishSubmit = () => {
+  const executeFinalSubmit = () => {
+    setUnansweredWarningCount(null);
     const solvedCount = Object.keys(answers).length;
-    const unansweredCount = questions.length - solvedCount;
-
-    if (unansweredCount > 0) {
-      const confirmSubmit = window.confirm(
-        `تنبيه: متبقي لديك ${unansweredCount} سؤال لم تقم بحله بعد! هل ترغب في إنهاء وتسليم الامتحان بالتأكيد؟`
-      );
-      if (!confirmSubmit) return;
-    }
-
-    // Calculate score
     let correct = 0;
     let wrongs = 0;
 
@@ -126,113 +116,92 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
     localStorage.removeItem(storageKey);
   };
 
+  const handleRequestSubmit = () => {
+    const unansweredCount = questions.length - Object.keys(answers).length;
+    if (unansweredCount > 0) {
+      setUnansweredWarningCount(unansweredCount);
+      return;
+    }
+    executeFinalSubmit();
+  };
+
   const activeQuestion = questions[currentIndex];
 
   return (
     <div className="space-y-3 sm:space-y-4" dir="rtl">
-      {/* Top Bar: Title, Back link, Timer, and Submit button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
         <div className="flex items-center gap-2.5">
-          <Link
-            href={`/courses/${courseId}`}
-            prefetch={false}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#071719] dark:hover:bg-[#0d2628] text-slate-700 dark:text-slate-200 transition"
-          >
+          <Link href={`/courses/${courseId}`} prefetch={false} className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#071719] dark:hover:bg-[#0d2628] text-slate-700 dark:text-slate-200 transition">
             <ArrowRight className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-xs sm:text-sm font-black text-slate-900 dark:text-emerald-300">
-              {examTitle}
-            </h1>
-            <span className="text-[11px] text-slate-400">
-              السؤال {currentIndex + 1} من {questions.length} • حفظ لحظي للإجابات
-            </span>
+            <h1 className="text-xs sm:text-sm font-black text-slate-900 dark:text-emerald-300">{examTitle}</h1>
+            <span className="text-[11px] text-slate-400">السؤال {currentIndex + 1} من {questions.length} • حفظ لحظي للإجابات</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <ExamTimer
-            initialSeconds={20 * 60}
-            onTimeUp={handleFinishSubmit}
-          />
-
-          <button
-            type="button"
-            onClick={handleFinishSubmit}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition active:scale-95"
-          >
+          <ExamTimer initialSeconds={20 * 60} onTimeUp={executeFinalSubmit} />
+          <button type="button" onClick={handleRequestSubmit} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition active:scale-95">
             <CheckSquare className="h-3.5 w-3.5" />
             <span>إنهاء وتسليم</span>
           </button>
         </div>
       </div>
 
-      {/* Main Layout: Question Left (2/3), Navigator Right (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-        {/* Question Area */}
         <div className="lg:col-span-8 space-y-3">
           {activeQuestion && (
-            <QuestionCard
-              question={activeQuestion}
-              selectedChoiceIndex={answers[activeQuestion.id]}
-              onSelectChoice={handleSelectChoice}
-            />
+            <QuestionCard question={activeQuestion} selectedChoiceIndex={answers[activeQuestion.id]} onSelectChoice={handleSelectChoice} />
           )}
 
-          {/* Navigation Controls (Prev / Next) */}
           <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
-            <button
-              type="button"
-              disabled={currentIndex === 0}
-              onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-300 dark:border-teal-500/30 px-3.5 py-1.5 text-xs font-bold disabled:opacity-40 transition"
-            >
-              <ChevronRight className="h-4 w-4" />
-              <span>السؤال السابق</span>
+            <button type="button" disabled={currentIndex === 0} onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 dark:border-teal-500/30 px-3.5 py-1.5 text-xs font-bold disabled:opacity-40 transition">
+              <ChevronRight className="h-4 w-4" /><span>السؤال السابق</span>
             </button>
-
-            <span className="text-xs font-bold text-slate-500 dark:text-teal-300 whitespace-nowrap px-1 text-center">
-              {currentIndex + 1} / {questions.length}
-            </span>
-
-            <button
-              type="button"
-              disabled={currentIndex >= questions.length - 1}
-              onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
-              className="inline-flex items-center gap-1 rounded-xl bg-bio-teal dark:bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold disabled:opacity-40 transition"
-            >
-              <span>السؤال التالي</span>
-              <ChevronLeft className="h-4 w-4" />
+            <span className="text-xs font-bold text-slate-500 dark:text-teal-300 whitespace-nowrap px-1 text-center">{currentIndex + 1} / {questions.length}</span>
+            <button type="button" disabled={currentIndex >= questions.length - 1} onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))} className="inline-flex items-center gap-1 rounded-xl bg-bio-teal dark:bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold disabled:opacity-40 transition">
+              <span>السؤال التالي</span><ChevronLeft className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Question Navigator Sidebar */}
         <div className="lg:col-span-4">
-          <QuestionNavigator
-            questions={questions}
-            currentIndex={currentIndex}
-            answers={answers}
-            flagged={flagged}
-            onSelectIndex={(idx) => setCurrentIndex(idx)}
-            onToggleFlag={handleToggleFlag}
-          />
+          <QuestionNavigator questions={questions} currentIndex={currentIndex} answers={answers} flagged={flagged} onSelectIndex={(idx) => setCurrentIndex(idx)} onToggleFlag={handleToggleFlag} />
         </div>
       </div>
 
-      {/* Result Modal */}
+      {unansweredWarningCount !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" dir="rtl">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 p-5 shadow-2xl space-y-4 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">تنبيه قبل تسليم الامتحان</h3>
+              <p className="mt-1.5 text-xs text-slate-600 dark:text-teal-200/80 leading-relaxed">
+                متبقي لديك <strong className="text-rose-500 font-black">{unansweredWarningCount}</strong> سؤال لم تقم بحله بعد! هل ترغب في إنهاء وتسليم الامتحان الآن؟
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 pt-1">
+              <button type="button" onClick={() => setUnansweredWarningCount(null)} className="flex-1 rounded-xl border border-slate-300 dark:border-teal-500/30 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#071719] transition">
+                العودة للمراجعة
+              </button>
+              <button type="button" onClick={executeFinalSubmit} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-xs font-bold shadow-sm transition active:scale-95">
+                نعم، تسليم الآن
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {submissionResult && (
         <ExamResultModal
           courseId={courseId}
           examTitle={examTitle}
           result={submissionResult}
           wrongCount={wrongCount}
-          onRetake={() => {
-            setAnswers({});
-            setFlagged({});
-            setSubmissionResult(null);
-            setCurrentIndex(0);
-          }}
+          onRetake={() => { setAnswers({}); setFlagged({}); setSubmissionResult(null); setCurrentIndex(0); }}
         />
       )}
     </div>

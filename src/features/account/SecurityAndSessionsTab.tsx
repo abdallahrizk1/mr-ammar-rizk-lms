@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LoginSessionItem } from '@/lib/data/student-profile-data';
 import { normalizeDigits } from '@/lib/utils/input-normalizer';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 interface SecurityAndSessionsTabProps {
   sessions: LoginSessionItem[];
@@ -20,15 +21,21 @@ interface SecurityAndSessionsTabProps {
   logoutsThisWeek: number;
 }
 
+const PAGE_SIZE = 10;
+
 export function SecurityAndSessionsTab({
   sessions,
   logoutsToday,
   logoutsThisWeek,
 }: SecurityAndSessionsTabProps) {
+  const [sessionPage, setSessionPage] = useState(1);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const startIdx = (sessionPage - 1) * PAGE_SIZE;
+  const paginatedSessions = sessions.slice(startIdx, startIdx + PAGE_SIZE);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +61,7 @@ export function SecurityAndSessionsTab({
 
   return (
     <div className="space-y-4" dir="rtl">
-      {/* 1. Top Stat Cards: Logout stats (Display only, without locking account) */}
+      {/* 1. Top Stat Cards: Logout stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
           <div className="flex items-center justify-between">
@@ -91,14 +98,48 @@ export function SecurityAndSessionsTab({
         </div>
       </div>
 
-      {/* 2. Login Sessions & Devices Table */}
+      {/* 2. Login Sessions & Devices (Paginated 10 per page + Mobile Cards) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
-        <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-emerald-300 mb-3 flex items-center gap-2">
-          <Shield className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
-          <span>جلسات وأجهزة تسجيل الدخول</span>
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-emerald-300 flex items-center gap-2">
+            <Shield className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
+            <span>جلسات وأجهزة تسجيل الدخول</span>
+          </h2>
+          <span className="rounded-full bg-slate-100 dark:bg-[#071719] px-2.5 py-0.5 text-xs font-bold text-slate-600 dark:text-teal-300">
+            {sessions.length} جلسة
+          </span>
+        </div>
 
-        <div className="overflow-x-auto no-scrollbar">
+        {/* Mobile Cards (< md) */}
+        <div className="md:hidden space-y-2.5">
+          {paginatedSessions.map((sess) => (
+            <div
+              key={sess.id}
+              className="rounded-2xl border border-slate-200/80 dark:border-teal-500/20 bg-slate-50 dark:bg-[#071719] p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                  {sess.deviceType === 'mobile' ? (
+                    <Smartphone className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
+                  ) : (
+                    <Laptop className="h-4 w-4 text-slate-500" />
+                  )}
+                  <span>{sess.deviceName}</span>
+                </div>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  {sess.lastActive}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-teal-300/70 border-t border-slate-200/60 dark:border-teal-500/10 pt-2">
+                <span>{sess.os} • {sess.browser}</span>
+                <span>{sess.loginDate}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table (>= md) */}
+        <div className="hidden md:block overflow-x-auto no-scrollbar">
           <table className="w-full text-right text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-teal-500/20 text-slate-400 dark:text-teal-300/60 text-[11px]">
@@ -111,7 +152,7 @@ export function SecurityAndSessionsTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-teal-500/10">
-              {sessions.map((sess) => (
+              {paginatedSessions.map((sess) => (
                 <tr key={sess.id} className="hover:bg-slate-50 dark:hover:bg-[#071719] transition">
                   <td className="py-2.5 px-2.5">
                     {sess.deviceType === 'mobile' ? (
@@ -129,12 +170,8 @@ export function SecurityAndSessionsTab({
                   <td className="py-2.5 px-2.5 font-semibold text-slate-900 dark:text-white">
                     {sess.deviceName}
                   </td>
-                  <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300">
-                    {sess.os}
-                  </td>
-                  <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300">
-                    {sess.browser}
-                  </td>
+                  <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300">{sess.os}</td>
+                  <td className="py-2.5 px-2.5 text-slate-600 dark:text-slate-300">{sess.browser}</td>
                   <td className="py-2.5 px-2.5">
                     <span className="inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                       {sess.lastActive}
@@ -148,6 +185,14 @@ export function SecurityAndSessionsTab({
             </tbody>
           </table>
         </div>
+
+        <PaginationControls
+          currentPage={sessionPage}
+          totalItems={sessions.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setSessionPage}
+          itemLabel="جلسة"
+        />
       </div>
 
       {/* 3. Change Password Form */}
@@ -156,74 +201,26 @@ export function SecurityAndSessionsTab({
           <KeyRound className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
           <span>تغيير كلمة السر</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-teal-200/60 mb-3">
-          قم بتحديث كلمة المرور الخاصة بحسابك مع اختيار كلمة سر قوية
-        </p>
-
         <form onSubmit={handlePasswordSubmit} className="space-y-3 max-w-md">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              كلمة السر الحالية
-            </label>
-            <input
-              type="password"
-              dir="ltr"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(normalizeDigits(e.target.value))}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#071719] dark:text-white"
-            />
+            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">كلمة السر الحالية</label>
+            <input type="password" dir="ltr" value={currentPassword} onChange={(e) => setCurrentPassword(normalizeDigits(e.target.value))} placeholder="••••••••" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-base sm:text-sm text-left text-slate-900 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white" />
           </div>
-
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              كلمة السر الجديدة (6 خانات على الأقل)
-            </label>
-            <input
-              type="password"
-              dir="ltr"
-              value={newPassword}
-              onChange={(e) => setNewPassword(normalizeDigits(e.target.value))}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#071719] dark:text-white"
-            />
+            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">كلمة السر الجديدة (6 خانات على الأقل)</label>
+            <input type="password" dir="ltr" value={newPassword} onChange={(e) => setNewPassword(normalizeDigits(e.target.value))} placeholder="••••••••" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-base sm:text-sm text-left text-slate-900 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white" />
           </div>
-
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              تأكيد كلمة السر الجديدة
-            </label>
-            <input
-              type="password"
-              dir="ltr"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(normalizeDigits(e.target.value))}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#071719] dark:text-white"
-            />
+            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">تأكيد كلمة السر الجديدة</label>
+            <input type="password" dir="ltr" value={confirmPassword} onChange={(e) => setConfirmPassword(normalizeDigits(e.target.value))} placeholder="••••••••" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-base sm:text-sm text-left text-slate-900 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white" />
           </div>
-
           {statusMsg && (
-            <div
-              className={`flex items-center gap-2 rounded-xl p-2.5 text-xs font-bold ${
-                statusMsg.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-              }`}
-            >
-              {statusMsg.type === 'success' ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-              )}
+            <div className={`flex items-center gap-2 rounded-xl p-2.5 text-xs font-bold ${statusMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'}`}>
+              {statusMsg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
               <span>{statusMsg.text}</span>
             </div>
           )}
-
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-bio-teal dark:bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95"
-          >
+          <button type="submit" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-bio-teal dark:bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition active:scale-95">
             <Lock className="h-3.5 w-3.5" />
             <span>حفظ كلمة السر الجديدة</span>
           </button>

@@ -7,9 +7,13 @@ import { ForumPostCard } from '@/features/forum/ForumPostCard';
 import { NewQuestionModal } from '@/features/forum/NewQuestionModal';
 import { ForumPostItem } from '@/lib/data/forum-data';
 import { getStoredForumPosts, addStoredForumPost } from '@/lib/utils/student-storage';
+import { PaginationControls } from '@/components/ui/PaginationControls';
+
+const PAGE_SIZE = 10;
 
 export default function StudentForumPage() {
   const [activeTab, setActiveTab] = useState<ForumTabId>('private');
+  const [currentPage, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState<ForumPostItem[]>(() => getStoredForumPosts());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [todayQuestionsCount, setTodayQuestionsCount] = useState(2);
@@ -18,15 +22,17 @@ export default function StudentForumPage() {
   const MAX_DAILY_QUESTIONS = 5;
   const remainingToday = Math.max(0, MAX_DAILY_QUESTIONS - todayQuestionsCount);
 
-  // Tab 1: أسئلتي الخاصة (Default) - Only this student's questions
-  // Tab 2: المنتدى العام للدفعة - Questions answered and approved for public broadcast
-  // Tab 3: قيد المراجعة - Questions waiting under review
   const filteredPosts = posts.filter((p) => {
     if (activeTab === 'private') return p.isMine;
     if (activeTab === 'public') return p.isPublicApproved;
     if (activeTab === 'pending') return p.status === 'pending';
     return true;
   });
+
+  const paginatedPosts = filteredPosts.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   const handleAddNewQuestion = (data: { title: string; text: string; imageBlobUrl?: string }) => {
     const newPost: ForumPostItem = {
@@ -47,6 +53,7 @@ export default function StudentForumPage() {
     setPosts((prev) => [newPost, ...prev]);
     setTodayQuestionsCount((c) => c + 1);
     setIsModalOpen(false);
+    setCurrentPage(1);
     setSuccessToast('تم إرسال سؤالك العلمي بنجاح، وسيقوم مستر عمار بالرد قريباً ✅');
     setTimeout(() => setSuccessToast(''), 4500);
   };
@@ -110,7 +117,10 @@ export default function StudentForumPage() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setCurrentPage(1);
+                }}
                 className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-bold transition active:scale-95 ${
                   isActive
                     ? 'bg-bio-teal text-white dark:bg-emerald-600 shadow-sm'
@@ -133,14 +143,23 @@ export default function StudentForumPage() {
 
       {/* Posts List */}
       <div className="space-y-3">
-        {filteredPosts.length === 0 ? (
+        {paginatedPosts.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-slate-400 rounded-2xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/20 p-8">
             لا توجد أسئلة في هذا القسم حالياً
           </div>
         ) : (
-          filteredPosts.map((post) => (
-            <ForumPostCard key={post.id} post={post} />
-          ))
+          <>
+            {paginatedPosts.map((post) => (
+              <ForumPostCard key={post.id} post={post} />
+            ))}
+            <PaginationControls
+              currentPage={currentPage}
+              totalItems={filteredPosts.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+              itemLabel="سؤال"
+            />
+          </>
         )}
       </div>
 
