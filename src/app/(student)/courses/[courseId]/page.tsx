@@ -2,7 +2,7 @@
 
 import React, { useState, use } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Layers, ArrowRight, Maximize2, Minimize2, Sparkles } from 'lucide-react';
+import { ChevronRight, Layers, ArrowRight } from 'lucide-react';
 import { CourseHeader } from '@/features/courses/CourseHeader';
 import { LectureItem } from '@/features/courses/LectureItem';
 import { QuizPreCardModal } from '@/features/courses/QuizPreCardModal';
@@ -24,7 +24,6 @@ export default function CourseDetailPage({ params }: PageProps) {
 
   const [submissions, setSubmissions] = useState(() => getStoredExamSubmissions());
   const [activeVideo, setActiveVideo] = useState<{ hlsUrl: string; title: string; lessonId: string } | null>(null);
-  const [isCinemaWide, setIsCinemaWide] = useState(false);
   const [activePdf, setActivePdf] = useState<{ title: string; pagesCount: number } | null>(null);
   const [activeQuizLecture, setActiveQuizLecture] = useState<LectureMaterials | null>(null);
   const [notification, setNotification] = useState<InAppNotification | null>(null);
@@ -90,26 +89,21 @@ export default function CourseDetailPage({ params }: PageProps) {
 
       {activeVideo ? (
         <div className="rounded-3xl border border-teal-500/30 bg-[#061517] p-3 sm:p-5 shadow-2xl space-y-4 text-white">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-500/20 pb-3">
+          <div className="flex items-center justify-between gap-3 border-b border-teal-500/20 pb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <button type="button" onClick={() => setActiveVideo(null)} className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold text-white transition active:scale-95 shrink-0">
-                <ArrowRight className="h-4 w-4" /><span>العودة للمحاضرات</span>
+              <button
+                type="button"
+                onClick={() => setActiveVideo(null)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold text-white transition active:scale-95 shrink-0"
+              >
+                <ArrowRight className="h-4 w-4" />
+                <span>العودة للمحاضرات</span>
               </button>
               <h2 className="text-xs sm:text-base font-black text-emerald-300 truncate">🎬 {activeVideo.title}</h2>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
-                <Sparkles className="h-3 w-3" /><span>مشغل احترافي متعدد السرعات والجودات</span>
-              </span>
-              <button type="button" onClick={() => setIsCinemaWide((w) => !w)} className="inline-flex items-center gap-1 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 px-2.5 py-1.5 text-xs font-bold text-teal-200 transition">
-                {isCinemaWide ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                <span>{isCinemaWide ? 'الحجم القياسي' : 'وضع السينما العريض'}</span>
-              </button>
-            </div>
           </div>
 
-          <div className={`mx-auto w-full transition-all ${isCinemaWide ? 'max-w-full' : 'max-w-4xl'}`}>
+          <div className="mx-auto w-full max-w-5xl">
             <CrossPlatformHlsPlayer
               lessonId={activeVideo.lessonId}
               manifestUrl={activeVideo.hlsUrl}

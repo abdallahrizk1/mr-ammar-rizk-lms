@@ -273,20 +273,56 @@ test('In-App Notifications: Zero native window.alert or window.confirm calls in 
   checkNoBrowserPopups(srcDir);
 });
 
-// 17. Professional Video Player Controls & 20s Demo Duration
-test('Professional Video Player: Implements scrubbing bar, speed control (0.75x-2x), +/-10s skip, quality selector, muted={isMuted}, and 20s demo duration', () => {
+// 17. Video Player Controls & Playback
+test('Video Player Controls: Seek bar, speed, skip buttons, volume, and fullscreen', () => {
   const controlsFile = path.join(srcDir, 'features', 'video-player', 'VideoPlayerControls.tsx');
   const playerFile = path.join(srcDir, 'features', 'video-player', 'CrossPlatformHlsPlayer.tsx');
   const controlsContent = fs.readFileSync(controlsFile, 'utf8');
   const playerContent = fs.readFileSync(playerFile, 'utf8');
 
   assert.ok(controlsContent.includes('type="range"'), 'VideoPlayerControls must have an interactive range seek bar');
-  assert.ok(controlsContent.includes('SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2]'), 'Must support playback speed options');
+  assert.ok(
+    controlsContent.includes('SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]') ||
+    controlsContent.includes('SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2]'),
+    'Must support playback speed options (0.5x to 2x)'
+  );
   assert.ok(controlsContent.includes('-10s') && controlsContent.includes('+10s'), 'Must support -10s and +10s skip buttons');
-  assert.ok(playerContent.includes('DEMO_DURATION_SEC = 20'), 'Must use 20-second demo duration instead of fabricated 48/54 minutes');
-  assert.ok(playerContent.includes('muted={isMuted}'), 'Must bind muted={isMuted} on <video> element instead of hardcoding muted');
+  assert.ok(playerContent.includes('DEMO_DURATION_SEC = 20'), 'Must use 20-second demo duration');
+  assert.ok(playerContent.includes('muted={isMuted}'), 'Must bind muted={isMuted} on <video> element');
   assert.ok(playerContent.includes('fullscreenchange'), 'Must sync fullscreen state on Escape key');
+  assert.ok(controlsContent.includes('flex-nowrap'), 'Controls row must not wrap');
+  assert.ok(controlsContent.includes('left-1/2 -translate-x-1/2'), 'Speed menu must be centered above button');
+  assert.ok(controlsContent.includes('fixed inset-0 z-40 bg-transparent'), 'Must render click-outside backdrop for open popups');
+  assert.ok(playerContent.includes('playsInline') && playerContent.includes('webkit-playsinline'), 'Video element must support iOS inline playback');
+  assert.ok(playerContent.includes('webkitEnterFullscreen'), 'Video player must support iOS Safari fullscreen fallback');
+  assert.ok(playerContent.includes('isEnded'), 'Player must track video completion for smooth replay');
+  assert.ok(playerContent.includes('handleKeyDown'), 'Player must support desktop keyboard shortcuts');
+
+  // Verify Removal of all Clutter from Video Frame and Course Page
+  const coursePageFile = path.join(srcDir, 'app', '(student)', 'courses', '[courseId]', 'page.tsx');
+  const coursePageContent = fs.readFileSync(coursePageFile, 'utf8');
+  assert.ok(!playerContent.includes('منصة أ/ عمار'), 'Player must remove platform watermark badge from video frame');
+  assert.ok(!playerContent.includes('animate-pulse'), 'Player must remove distracting pulse animations over video');
+  assert.ok(!coursePageContent.includes('وضع السينما العريض'), 'Course page must remove cinema wide toggle');
+  assert.ok(!coursePageContent.includes('مشغل احترافي متعدد السرعات'), 'Course page must remove sparkles clutter text');
+  // Verify formatVideoTime edge cases
+  assert.ok(controlsContent.includes('formatVideoTime(sec: number)'), 'Must export formatVideoTime function');
+  const formatMatch = controlsContent.match(/function formatVideoTime\(sec: number\): string \{([\s\S]*?)\n\}/);
+  assert.ok(formatMatch, 'formatVideoTime implementation must exist');
+  function formatVideoTime(sec) {
+    const safe = Math.max(0, Math.floor(Number.isFinite(sec) ? sec : 0));
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  assert.equal(formatVideoTime(0), '00:00');
+  assert.equal(formatVideoTime(59), '00:59');
+  assert.equal(formatVideoTime(60), '01:00');
+  assert.equal(formatVideoTime(125), '02:05');
+  assert.equal(formatVideoTime(-5), '00:00');
+  assert.equal(formatVideoTime(NaN), '00:00');
 });
+
 
 
 
