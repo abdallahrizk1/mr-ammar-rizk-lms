@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8fafc;
+  --foreground: #020617;
+}
+
+.dark {
+  --background: #040d0e;
+  --foreground: #f8fafc;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-cairo), Cairo, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* 
+ * CRITICAL RULE: Prevent iOS Safari Auto-Zoom on form fields.
+ * If font-size is less than 16px, iOS forces an involuntary zoom on focus.
+ */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Glassmorphism utility helpers */
+.glass-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
