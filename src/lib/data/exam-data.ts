@@ -1,0 +1,171 @@
+import {
+  ExamQuestion,
+  ExamResultSummary,
+  StudentMistakeItem,
+  WatchHistoryItem,
+} from './exam-types';
+
+export const SAMPLE_EXAM_QUESTIONS: ExamQuestion[] = [
+  {
+    id: 'q-1',
+    questionNumber: 1,
+    questionText: 'أي التغيرات التالية يطرأ على خلية نباتية عند وضعها في محلول سكري عالي التركيز لفترة كافية؟',
+    diagramTitle: 'تجربة ضغط الامتلاء والخاصية الأسموزية داخل فجوة الخلية النباتية',
+    choices: [
+      'يزداد حجم الفجوة العصارية ويزداد ضغط الامتلاء',
+      'يقل حجم الفجوة العصارية ويزداد الضغط الأسموزي داخلها',
+      'يتحرك الماء إلى داخل الخلية بالتشرب وينتفخ الجدار',
+      'لا يتأثر حجم الفجوة العصارية نظراً لصلابة الجدار الخلوي',
+    ],
+    correctChoiceIndex: 1,
+    explanation: 'عند وضع الخلية في محلول عالي التركيز، يخرج الماء من الفجوة بالخاصية الأسموزية فتنكمش ويزداد الضغط الأسموزي.',
+  },
+  {
+    id: 'q-2',
+    questionNumber: 2,
+    questionText: 'ما المادة الكيميائية الصلبة غير المنفذة للماء التي تترسب على جدر خلايا نسيج الفلين في سيقان النباتات الخشبية؟',
+    choices: ['السليلوز', 'البكتين', 'السيوبرين', 'اللجنين'],
+    correctChoiceIndex: 2,
+    explanation: 'السيوبرين مادة غير منفذة للماء تترسب في نسيج الفلين لتمنع فقد الماء وتوفر دعامة تركيبية.',
+  },
+  {
+    id: 'q-3',
+    questionNumber: 3,
+    questionText: 'كم عدد الفقرات العظمية في العمود الفقري للإنسان التي تتمفصل مع الضلوع الصدرية؟',
+    choices: ['7 فقرات', '12 فقرة', '5 فقرات', '24 فقرة'],
+    correctChoiceIndex: 1,
+    explanation: 'الفقرات الظهرية (الصدرية) وعددها 12 فقرة (من رقم 8 إلى 19) هي المتصلة بالضلوع.',
+  },
+  {
+    id: 'q-4',
+    questionNumber: 4,
+    questionText: 'الرباط الصليبي في مفصل الركبة يصل بين عظمتي:',
+    choices: ['الفخذ والشظية', 'الفخذ والقصبة', 'القصبة والشظية', 'الفخذ والرضفة'],
+    correctChoiceIndex: 1,
+    explanation: 'الأربطة الصليبية (الأمامي والخلفي) تربط بين عظمة الفخذ وعظمة القصبة في مفصل الركبة.',
+  },
+  {
+    id: 'q-5',
+    questionNumber: 5,
+    questionText: 'أي مما يلي يميز المفاصل الغضروفية عن المفاصل الليفية في الهيكل العظمي للإنسان؟',
+    choices: [
+      'تسمح بحركة محدودة جداً وتوجد بين عظام العمود الفقري',
+      'لا تسمح بأي حركة وتتحول مع تقدم العمر لنسيج عظمي',
+      'تحتوي على سائل مصلي يسهل انزلاق العظام',
+      'تثبت الأسنان في الفكين العلوي والسفلي',
+    ],
+    correctChoiceIndex: 0,
+    explanation: 'المفاصل الغضروفية تسمح بحركة محدودة جداً، بينما المفاصل الليفية عديمة الحركة.',
+  },
+];
+
+export const SAMPLE_QUIZ_RESULTS: ExamResultSummary[] = [
+  {
+    id: 'res-q-1',
+    examName: 'كويز المحاضرة الأولى: الدعامة في النبات',
+    totalQuestions: 15,
+    score: 14,
+    percentage: 93,
+    solvedCount: 15,
+    correctCount: 14,
+    startTime: '25 أكتوبر 2026 - 06:15 م',
+    endTime: '25 أكتوبر 2026 - 06:33 م',
+    questions: SAMPLE_EXAM_QUESTIONS,
+    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': 1, 'q-4': 0, 'q-5': 0 },
+  },
+  {
+    id: 'res-q-2',
+    examName: 'كويز المحاضرة الثانية: الهيكل المحوري',
+    totalQuestions: 15,
+    score: 13,
+    percentage: 87,
+    solvedCount: 15,
+    correctCount: 13,
+    startTime: '28 أكتوبر 2026 - 08:00 م',
+    endTime: '28 أكتوبر 2026 - 08:18 م',
+    questions: SAMPLE_EXAM_QUESTIONS,
+    studentAnswers: { 'q-1': 1, 'q-2': 3, 'q-3': 1, 'q-4': 1, 'q-5': 0 },
+  },
+];
+
+export const SAMPLE_HOMEWORK_RESULTS: ExamResultSummary[] = [
+  {
+    id: 'res-hw-1',
+    examName: 'واجب المحاضرة الأولى: أسئلة الفهم والربط في الدعامة',
+    totalQuestions: 20,
+    score: 18,
+    percentage: 90,
+    solvedCount: 20,
+    correctCount: 18,
+    startTime: '26 أكتوبر 2026 - 04:30 م',
+    endTime: '26 أكتوبر 2026 - 05:15 م',
+    questions: SAMPLE_EXAM_QUESTIONS,
+    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': 0, 'q-4': 1, 'q-5': 0 },
+  },
+  {
+    id: 'res-hw-2',
+    examName: 'واجب المحاضرة الثانية: مسائل وتدريبات الهيكل العظمي',
+    totalQuestions: 15,
+    score: 14,
+    percentage: 93,
+    solvedCount: 15,
+    correctCount: 14,
+    startTime: '29 أكتوبر 2026 - 07:10 م',
+    endTime: '29 أكتوبر 2026 - 07:45 م',
+    questions: SAMPLE_EXAM_QUESTIONS,
+    studentAnswers: { 'q-1': 1, 'q-2': 2, 'q-3': 1, 'q-4': 1, 'q-5': 2 },
+  },
+];
+
+export const SAMPLE_MISTAKES: StudentMistakeItem[] = [
+  {
+    id: 'mistake-1',
+    category: 'quiz',
+    sourceTitle: 'كويز المحاضرة الأولى: الدعامة في النبات',
+    questionId: 'q-4',
+    questionText: 'الرباط الصليبي في مفصل الركبة يصل بين عظمتي:',
+    choices: ['الفخذ والشظية', 'الفخذ والقصبة', 'القصبة والشظية', 'الفخذ والرضفة'],
+    studentChoiceIndex: 0,
+    correctChoiceIndex: 1,
+    explanation: 'الرباط الصليبي يربط الفخذ بالقصبة، بينما الرباط الجانبي يربط الفخذ بالشظية.',
+  },
+  {
+    id: 'mistake-2',
+    category: 'quiz',
+    sourceTitle: 'كويز المحاضرة الثانية: الهيكل المحوري',
+    questionId: 'q-2',
+    questionText: 'ما المادة الكيميائية الصلبة غير المنفذة للماء التي تترسب على جدر خلايا نسيج الفلين في سيقان النباتات الخشبية؟',
+    choices: ['السليلوز', 'البكتين', 'السيوبرين', 'اللجنين'],
+    studentChoiceIndex: 3,
+    correctChoiceIndex: 2,
+    explanation: 'اللجنين يترسب في أوعية الخشب، بينما نسيج الفلين يترسب فيه السيوبرين.',
+  },
+  {
+    id: 'mistake-3',
+    category: 'homework',
+    sourceTitle: 'واجب المحاضرة الأولى: أسئلة الفهم والربط',
+    questionId: 'q-3',
+    questionText: 'كم عدد الفقرات العظمية في العمود الفقري للإنسان التي تتمفصل مع الضلوع الصدرية؟',
+    choices: ['7 فقرات', '12 فقرة', '5 فقرات', '24 فقرة'],
+    studentChoiceIndex: 0,
+    correctChoiceIndex: 1,
+    explanation: 'الـ 7 فقرات هي العنقية، أما الفقرات المتصلة بالضلوع هي الـ 12 فقرة ظهرية.',
+  },
+];
+
+export const SAMPLE_WATCH_HISTORY: WatchHistoryItem[] = [
+  {
+    id: 'w-1',
+    videoTitle: 'فيديو شرح المحاضرة الأولى: الدعامة في النبات',
+    courseTitle: 'الكورس الشامل لمادة الأحياء للثانوية العامة',
+    watchDuration: '48 دقيقة كاملة (100%)',
+    watchDate: '25 أكتوبر 2026 - 05:30 م',
+  },
+  {
+    id: 'w-2',
+    videoTitle: 'فيديو شرح الهيكل المحوري: العمود الفقري والجمجمة',
+    courseTitle: 'الكورس الشامل لمادة الأحياء للثانوية العامة',
+    watchDuration: '54 دقيقة كاملة (100%)',
+    watchDate: '28 أكتوبر 2026 - 07:15 م',
+  },
+];
