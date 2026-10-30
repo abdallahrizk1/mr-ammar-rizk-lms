@@ -191,7 +191,7 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
               <span>السؤال السابق</span>
             </button>
 
-            <span className="text-xs font-bold text-slate-500 dark:text-teal-300">
+            <span className="text-xs font-bold text-slate-500 dark:text-teal-300 whitespace-nowrap px-1 text-center">
               {currentIndex + 1} / {questions.length}
             </span>
 

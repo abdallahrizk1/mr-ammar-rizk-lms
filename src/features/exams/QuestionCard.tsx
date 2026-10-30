@@ -71,7 +71,7 @@ export function QuestionCard({
               }`}
             >
               <span
-                className={`flex h-8 sm:h-9 px-2.5 shrink-0 items-center justify-center rounded-xl text-xs sm:text-sm font-black transition ${
+                className={`flex h-8 sm:h-9 px-2.5 shrink-0 items-center justify-center rounded-xl text-xs sm:text-sm font-black whitespace-nowrap select-none transition ${
                   isSelected
                     ? 'bg-bio-teal text-white dark:bg-emerald-600 shadow-sm'
                     : 'bg-white text-slate-800 border border-slate-200 dark:bg-[#091D20] dark:border-teal-500/30 dark:text-slate-200'

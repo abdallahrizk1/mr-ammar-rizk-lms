@@ -67,19 +67,44 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
 
   return (
     <>
-      <header ref={navRef} className="sticky top-0 z-40 w-full pt-1.5 sm:pt-2 px-3 sm:px-6 max-w-7xl mx-auto">
+      <header ref={navRef} className="sticky top-0 z-40 w-full pt-3 sm:pt-2 px-3 sm:px-6 max-w-7xl mx-auto">
         <div className="flex h-12 sm:h-14 items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2.5 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
           
-          {/* Left Side: Brand Logo + Safe Isolated LTR Capsule Switch */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <Link href="/" prefetch={false} className="flex items-center shrink-0">
+          {/* Right Side (RTL Start): Mobile Drawer Trigger on Right + Desktop Brand Logo */}
+          <div className="flex items-center gap-2 shrink-0">
+            {isLoggedIn && (
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(true)}
+                aria-label="فتح القائمة الجانبية"
+                className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl bg-bio-teal/10 hover:bg-bio-teal/20 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400 border border-bio-teal/20 transition active:scale-95"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+            )}
+
+            <Link href="/" prefetch={false} className="hidden md:flex items-center shrink-0">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
                 className="h-7 sm:h-8 w-auto object-contain"
               />
             </Link>
+          </div>
 
+          {/* Center (Mobile Only): Clean centered brand logo */}
+          <div className="flex md:hidden items-center justify-center">
+            <Link href="/" prefetch={false} className="flex items-center">
+              <img
+                src="/images/logo-ammar.png"
+                alt="شعار المنصة"
+                className="h-7 w-auto object-contain"
+              />
+            </Link>
+          </div>
+
+          {/* Left Side (RTL End): Theme Switch + Logged-in controls OR Auth buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Capsule Theme Toggle Switch (Forced LTR to prevent RTL knob overflow) */}
             <button
               type="button"
@@ -98,22 +123,9 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
                 }`}
               />
             </button>
-          </div>
 
-          {/* Right Side: Logged-in controls OR Auth buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isLoggedIn ? (
               <div className="flex items-center gap-1.5 sm:gap-2 relative">
-                {/* Mobile Drawer Trigger (md:hidden) */}
-                <button
-                  type="button"
-                  onClick={() => setIsMobileDrawerOpen(true)}
-                  aria-label="فتح القائمة الجانبية"
-                  className="flex md:hidden h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-teal-500/30 dark:bg-[#040D0E] dark:text-slate-200"
-                >
-                  <Menu className="h-4 w-4" />
-                </button>
-
                 {/* Notification Bell */}
                 <button
                   type="button"

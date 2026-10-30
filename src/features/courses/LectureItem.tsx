@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Lock,
@@ -10,6 +10,7 @@ import {
   BookOpen,
   Download,
   Eye,
+  ChevronDown,
 } from 'lucide-react';
 import { LectureMaterials } from '@/lib/data/courses-types';
 import { LectureSolutionsBlock } from './LectureSolutionsBlock';
@@ -29,20 +30,36 @@ export function LectureItem({
   onOpenPdf,
   onOpenQuizModal,
 }: LectureItemProps) {
+  // Accordion state: Lecture 1 is open by default, others collapsible
+  const [isOpen, setIsOpen] = useState(lecture.isUnlocked && lecture.order === 1);
+
   return (
     <div
-      className={`rounded-2xl border p-3.5 sm:p-4 transition ${
+      className={`rounded-2xl border transition ${
         lecture.isUnlocked
           ? 'border-slate-200 bg-white shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]'
           : 'border-slate-200/60 bg-slate-100/60 dark:border-teal-500/10 dark:bg-[#071719]/60 opacity-80'
       }`}
       dir="rtl"
     >
-      {/* Lecture Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-teal-500/15">
-        <div className="flex items-center gap-2.5">
+      {/* Interactive Accordion Header */}
+      <div
+        role="button"
+        tabIndex={lecture.isUnlocked ? 0 : -1}
+        onClick={() => lecture.isUnlocked && setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (lecture.isUnlocked) setIsOpen(!isOpen);
+          }
+        }}
+        className={`flex items-center justify-between p-3.5 sm:p-4 gap-2 transition select-none ${
+          lecture.isUnlocked ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-[#0d2628]' : ''
+        }`}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black ${
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
               lecture.isUnlocked
                 ? 'bg-bio-teal/10 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400'
                 : 'bg-slate-200 text-slate-500 dark:bg-slate-800'
@@ -50,30 +67,47 @@ export function LectureItem({
           >
             {lecture.order}
           </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+          <div className="min-w-0">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
               {lecture.title}
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-teal-200/60 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-teal-200/60 mt-0.5 truncate">
               {lecture.description}
             </p>
           </div>
         </div>
 
-        {!lecture.isUnlocked && (
-          <div className="flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 self-start sm:self-auto border border-amber-500/20">
-            <Lock className="h-3.5 w-3.5" />
-            <span>مقفولة (تتطلب 50% في المحاضرة السابقة)</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {!lecture.isUnlocked ? (
+            <div className="flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <Lock className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">مقفولة (تتطلب 50%)</span>
+              <span className="sm:hidden">مقفولة</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="hidden md:inline-flex text-[11px] text-slate-400 font-medium">
+                {isOpen ? 'إخفاء المحتويات' : 'عرض المحتويات'}
+              </span>
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-teal-300 transition ${
+                  isOpen ? 'text-bio-teal dark:text-emerald-400' : ''
+                }`}
+              >
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {lecture.isUnlocked ? (
-        <div className="mt-3.5 space-y-2.5">
+      {/* Accordion Expandable Contents */}
+      {lecture.isUnlocked && isOpen && (
+        <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 pt-1 space-y-2.5 border-t border-slate-100 dark:border-teal-500/15 animate-in fade-in duration-150">
           {/* Element 1: Video */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-[#071719] p-3 border border-slate-200/70 dark:border-teal-500/15">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <PlayCircle className="h-4 w-4" />
               </div>
               <div>
@@ -98,7 +132,7 @@ export function LectureItem({
           {/* Element 2: PDF */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-[#071719] p-3 border border-slate-200/70 dark:border-teal-500/15">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
                 <FileText className="h-4 w-4" />
               </div>
               <div>
@@ -110,7 +144,7 @@ export function LectureItem({
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => onOpenPdf(lecture.pdf.title, lecture.pdf.pagesCount)}
@@ -133,7 +167,7 @@ export function LectureItem({
           {/* Element 3: Quiz */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-[#071719] p-3 border border-slate-200/70 dark:border-teal-500/15">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <Award className="h-4 w-4" />
               </div>
               <div>
@@ -159,7 +193,7 @@ export function LectureItem({
           {/* Element 4: Homework */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-[#071719] p-3 border border-slate-200/70 dark:border-teal-500/15">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <BookOpen className="h-4 w-4" />
               </div>
               <div>
@@ -188,11 +222,6 @@ export function LectureItem({
             onPlayVideo={onPlayVideo}
             onOpenPdf={onOpenPdf}
           />
-        </div>
-      ) : (
-        <div className="py-6 text-center text-xs text-slate-500 dark:text-teal-200/60 space-y-1">
-          <p className="font-bold">هذه المحاضرة مقفولة حالياً 🔒</p>
-          <p className="text-[11px]">يجب عليك تسليم كويز وواجب المحاضرة السابقة وتحقيق 50% على الأقل لفتحها تلقائياً.</p>
         </div>
       )}
     </div>

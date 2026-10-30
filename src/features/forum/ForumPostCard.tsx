@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MessageCircle, Clock, CheckCircle2, User, HelpCircle } from 'lucide-react';
+import { MessageCircle, Clock, CheckCircle2, User } from 'lucide-react';
 import { ForumPostItem } from '@/lib/data/forum-data';
 import { ForumVoiceNotePlayer } from './ForumVoiceNotePlayer';
 
@@ -50,19 +50,21 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
         </div>
       </div>
 
-      {/* Question Title & Content */}
+      {/* Question Content */}
       <div className="space-y-1.5">
-        <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-          ❓ {post.questionTitle}
-        </h3>
-        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+        {post.questionTitle && post.questionTitle !== post.questionText && !post.questionText.startsWith(post.questionTitle.replace(/\.\.\.$/, '')) && (
+          <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+            ❓ {post.questionTitle}
+          </h3>
+        )}
+        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
           {post.questionText}
         </p>
 
         {post.questionImageUrl && (
           <div className="rounded-xl border border-slate-200 dark:border-teal-500/20 bg-slate-50 dark:bg-[#071719] p-2 max-w-sm">
             <span className="text-[10px] font-bold text-slate-400 block mb-1">
-              📷 صورة المسألة المرفقة:
+              📷 صورة مرفقة:
             </span>
             <img
               src={post.questionImageUrl}
@@ -81,26 +83,14 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
               <MessageCircle className="h-4 w-4" />
               <span>{post.repliedBy || 'مستر عمار رزق 🧬'}</span>
             </div>
-            <span className="text-[10px] text-slate-400">رد علمي معتمد</span>
           </div>
 
           <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
             {post.replyText}
           </p>
 
-          {/* Teacher Explanatory Image */}
-          {post.replyImageUrl && (
-            <div className="rounded-xl border border-bio-teal/20 dark:border-teal-500/30 bg-white dark:bg-[#071719] p-2.5 max-w-sm">
-              <span className="text-[10px] font-bold text-bio-teal dark:text-emerald-400 block mb-1">
-                🖼️ رسمة / صورة توضيحية من مستر عمار:
-              </span>
-              <img
-                src={post.replyImageUrl}
-                alt="توضيح مستر عمار"
-                className="rounded-lg object-contain max-h-48 w-full border border-slate-100 dark:border-teal-500/20"
-              />
-            </div>
-          )}
+          {/* Note: replyImageUrl support preserved in data model, hidden from UI per user request */}
+          {/* post.replyImageUrl */}
 
           {/* Interactive Voice Note Player */}
           {post.replyVoiceNote && (

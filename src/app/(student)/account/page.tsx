@@ -17,6 +17,7 @@ import { QuizResultsTab } from '@/features/account/QuizResultsTab';
 import { HomeworkResultsTab } from '@/features/account/HomeworkResultsTab';
 import { WatchHistoryTab } from '@/features/account/WatchHistoryTab';
 import { MistakesBankTab } from '@/features/account/MistakesBankTab';
+import { MobileAccountTabs } from '@/features/account/MobileAccountTabs';
 import {
   INITIAL_STUDENT_PROFILE,
   INITIAL_STUDENT_STATS,
@@ -117,9 +118,16 @@ export default function StudentAccountPage() {
       {/* Fixed top profile card */}
       <StudentProfileCard profile={profile} />
 
-      {/* Tabs navigation bar */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-1.5 sm:p-2 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20] overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1.5 min-w-max">
+      {/* Mobile Vertical Cards Tabs (< md) */}
+      <MobileAccountTabs
+        tabs={tabsConfig}
+        activeTab={activeTab}
+        onSelectTab={(id) => setActiveTab(id)}
+      />
+
+      {/* Desktop Tabs navigation bar (hidden on mobile, visible on md+) */}
+      <div className="hidden md:block rounded-2xl border border-slate-200 bg-white p-1.5 sm:p-2 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
+        <div className="flex items-center gap-1.5">
           {tabsConfig.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
