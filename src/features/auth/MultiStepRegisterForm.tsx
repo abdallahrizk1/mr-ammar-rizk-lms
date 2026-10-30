@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, User, School, Lock } from 'lucide-react';
-import { normalizePhoneNumber, phoneToVirtualEmail, sanitizePhoneInput } from '@/lib/utils/input-normalizer';
+import { normalizeDigits, normalizePhoneNumber, phoneToVirtualEmail, sanitizePhoneInput } from '@/lib/utils/input-normalizer';
 import { HIGH_SCHOOL_GRADES, EDUCATION_TYPES, EGYPTIAN_GOVERNORATES, type FullRegisterInput } from './types';
 
 export function MultiStepRegisterForm() {
@@ -88,7 +88,7 @@ export function MultiStepRegisterForm() {
 
   if (isSuccess) {
     return (
-      <div dir="rtl" className="mx-auto my-auto max-w-md rounded-2xl border border-emerald-500/30 bg-white p-4 sm:p-5 text-center text-slate-900 shadow-xl dark:bg-[#0D2628] dark:border-emerald-500/30 dark:text-white transition-colors">
+      <div dir="rtl" className="mx-auto w-full max-w-md rounded-2xl border border-emerald-500/30 bg-white p-4 sm:p-5 text-center text-slate-900 shadow-xl dark:bg-[#0D2628] dark:border-emerald-500/30 dark:text-white transition-colors">
         <div className="mx-auto mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-7 w-7 animate-bounce" />
         </div>
@@ -104,44 +104,44 @@ export function MultiStepRegisterForm() {
     );
   }
 
-  const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400 dark:focus:border-emerald-400 dark:focus:ring-1 dark:focus:ring-emerald-400/40";
+  const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400 dark:focus:border-emerald-400 dark:focus:ring-1 dark:focus:ring-emerald-400/40";
 
   return (
-    <div dir="rtl" className="mx-auto my-auto w-full max-w-md sm:max-w-lg rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 text-slate-900 shadow-lg dark:border-teal-500/25 dark:bg-[#0D2628] dark:shadow-2xl dark:shadow-black/50 dark:text-white transition-colors">
+    <div dir="rtl" className="mx-auto w-full max-w-md sm:max-w-lg rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 text-slate-900 shadow-lg dark:border-teal-500/25 dark:bg-[#0D2628] dark:shadow-2xl dark:shadow-black/50 dark:text-white transition-colors">
       <div className="mb-3 text-center">
         <h1 className="text-lg sm:text-xl font-black text-bio-teal dark:text-emerald-400">انضم لدفعة 2027 🧬</h1>
         <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">سجل حسابك في منصة مستر عمار رزق للأحياء</p>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-1.5 border-b border-slate-200 dark:border-teal-500/20 pb-2.5">
+      <div className="mb-3.5 flex items-center justify-between gap-1 border-b border-slate-200 dark:border-teal-500/20 pb-2.5">
         {[
           { num: 1, label: 'البيانات الشخصية', icon: User },
           { num: 2, label: 'البيانات الدراسية', icon: School },
           { num: 3, label: 'تأمين الحساب', icon: Lock },
         ].map((item) => (
-          <div key={item.num} className={`flex items-center gap-1.5 text-xs font-semibold ${step >= item.num ? 'text-bio-teal dark:text-emerald-300 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
-            <span className={`flex h-5.5 w-5.5 items-center justify-center rounded-full text-xs font-bold ${step === item.num ? 'bg-bio-teal text-white dark:bg-emerald-500 dark:text-slate-950 font-black shadow-sm' : step > item.num ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-[#071719] dark:border dark:border-teal-500/20 text-slate-500'}`}>
+          <div key={item.num} className={`flex min-w-0 items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold ${step >= item.num ? 'text-bio-teal dark:text-emerald-300 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
+            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${step === item.num ? 'bg-bio-teal text-white dark:bg-emerald-500 dark:text-slate-950 font-black shadow-sm' : step > item.num ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-[#071719] dark:border dark:border-teal-500/20 text-slate-500'}`}>
               {item.num}
             </span>
-            <span className="hidden sm:inline">{item.label}</span>
+            <span className="truncate">{item.label}</span>
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-2.5">
+      <form onSubmit={handleSubmit} className="space-y-3" noValidate>
         {step === 1 && (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <div>
               <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">الاسم الثلاثي أو الرباعي للطالب *</label>
-              <input type="text" value={formData.fullName} onChange={(e) => updateField('fullName', e.target.value)} placeholder="مثال: أحمد محمد علي" className={inputClass} />
+              <input type="text" autoComplete="name" value={formData.fullName} onChange={(e) => updateField('fullName', e.target.value)} placeholder="مثال: أحمد محمد علي" className={inputClass} />
               {errors.fullName && <p className="mt-1 text-xs text-rose-500">{errors.fullName}</p>}
             </div>
             <div>
               <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">رقم هاتف الطالب (واتساب) *</label>
-              <input type="tel" dir="ltr" value={formData.phone} onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))} placeholder="010XXXXXXXX" className={`${inputClass} text-left`} />
+              <input type="tel" inputMode="numeric" autoComplete="tel" dir="ltr" value={formData.phone} onChange={(e) => updateField('phone', sanitizePhoneInput(e.target.value))} placeholder="010XXXXXXXX" className={`${inputClass} text-left`} />
               {errors.phone && <p className="mt-1 text-xs text-rose-500">{errors.phone}</p>}
             </div>
-            <button type="button" onClick={handleNext} className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95">
+            <button type="button" onClick={handleNext} className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95">
               <span>المتابعة للبيانات الدراسية</span>
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -181,7 +181,7 @@ export function MultiStepRegisterForm() {
             </div>
             <div>
               <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">رقم هاتف ولي الأمر (ممنوع تطابقه مع الطالب) *</label>
-              <input type="tel" dir="ltr" value={formData.parentPhone} onChange={(e) => updateField('parentPhone', sanitizePhoneInput(e.target.value))} placeholder="01XXXXXXXXX" className={`${inputClass} text-left`} />
+              <input type="tel" inputMode="numeric" dir="ltr" value={formData.parentPhone} onChange={(e) => updateField('parentPhone', sanitizePhoneInput(e.target.value))} placeholder="01XXXXXXXXX" className={`${inputClass} text-left`} />
               {errors.parentPhone && <p className="mt-1 text-xs text-rose-500 font-bold">{errors.parentPhone}</p>}
             </div>
             <div className="flex gap-2.5 pt-1">
@@ -201,12 +201,12 @@ export function MultiStepRegisterForm() {
           <div className="space-y-2.5">
             <div>
               <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">كلمة السر (6 خانات على الأقل) *</label>
-              <input type="password" value={formData.password} onChange={(e) => updateField('password', e.target.value)} placeholder="••••••••" className={inputClass} />
+              <input type="password" dir="ltr" autoComplete="new-password" value={formData.password} onChange={(e) => updateField('password', normalizeDigits(e.target.value))} placeholder="••••••••" className={`${inputClass} text-left`} />
               {errors.password && <p className="mt-1 text-xs text-rose-500">{errors.password}</p>}
             </div>
             <div>
               <label className="mb-1 block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">تأكيد كلمة السر *</label>
-              <input type="password" value={formData.confirmPassword} onChange={(e) => updateField('confirmPassword', e.target.value)} placeholder="••••••••" className={inputClass} />
+              <input type="password" dir="ltr" autoComplete="new-password" value={formData.confirmPassword} onChange={(e) => updateField('confirmPassword', normalizeDigits(e.target.value))} placeholder="••••••••" className={`${inputClass} text-left`} />
               {errors.confirmPassword && <p className="mt-1 text-xs text-rose-500">{errors.confirmPassword}</p>}
             </div>
             <div className="flex gap-2.5 pt-1">

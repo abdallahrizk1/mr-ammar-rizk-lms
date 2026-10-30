@@ -40,7 +40,7 @@ export function HeroSection() {
           {/* Left Column: Teacher High-Res Circular Graphic */}
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative flex items-center justify-center">
-              <div className="h-32 w-32 sm:h-38 sm:w-38 lg:h-44 lg:w-44 overflow-hidden rounded-full border-2 border-white/20 shadow-lg bg-teal-950/40">
+              <div className="h-32 w-32 sm:h-36 sm:w-36 lg:h-44 lg:w-44 overflow-hidden rounded-full border-2 border-white/20 shadow-lg bg-teal-950/40">
                 <img
                   src="/images/teacher-circle.png"
                   alt="الأستاذ عمار رزق"

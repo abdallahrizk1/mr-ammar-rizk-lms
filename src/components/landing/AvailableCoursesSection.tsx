@@ -123,7 +123,7 @@ export function AvailableCoursesSection() {
               type="button"
               onClick={scrollRight}
               aria-label="السابق"
-              className="flex h-7.5 w-7.5 items-center justify-center rounded-xl border border-slate-200 dark:border-teal-500/25 bg-white dark:bg-[#0D2628] text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-emerald-600"
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-teal-500/25 bg-white dark:bg-[#0D2628] text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-emerald-600"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -131,7 +131,7 @@ export function AvailableCoursesSection() {
               type="button"
               onClick={scrollLeft}
               aria-label="التالي"
-              className="flex h-7.5 w-7.5 items-center justify-center rounded-xl border border-slate-200 dark:border-teal-500/25 bg-white dark:bg-[#0D2628] text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-emerald-600"
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-teal-500/25 bg-white dark:bg-[#0D2628] text-slate-700 dark:text-slate-200 shadow-sm transition hover:bg-bio-teal hover:text-white dark:hover:bg-emerald-600"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -147,7 +147,7 @@ export function AvailableCoursesSection() {
                 key={f.id}
                 type="button"
                 onClick={() => setActiveFilter(f.id)}
-                className={`rounded-xl px-2.5 py-0.5 text-xs font-bold transition-all shadow-sm ${
+                className={`rounded-xl px-2.5 py-1 text-xs font-bold transition-all shadow-sm ${
                   isActive
                     ? 'bg-bio-teal dark:bg-emerald-600 text-white shadow-sm'
                     : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-[#0D2628] dark:text-slate-300 dark:border-teal-500/20 dark:hover:bg-[#123639]'
@@ -168,14 +168,14 @@ export function AvailableCoursesSection() {
             filteredCourses.map((course) => (
               <div
                 key={course.id}
-                className="w-[220px] sm:w-[250px] shrink-0 snap-start flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm dark:border-teal-500/20 dark:bg-[#0D2628] transition hover:shadow-md text-right"
+                className="w-[225px] sm:w-[250px] shrink-0 snap-start flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm dark:border-teal-500/20 dark:bg-[#0D2628] transition hover:shadow-md text-right"
               >
                 <div>
                   <div className="relative h-24 sm:h-28 w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#071719] mb-2 flex items-center justify-center border border-slate-200/50 dark:border-teal-500/10">
                     <img
                       src={course.image}
                       alt={course.title}
-                      className="h-18 w-18 sm:h-20 sm:w-20 object-contain"
+                      className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
                     />
                   </div>
 

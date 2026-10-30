@@ -20,7 +20,7 @@ export function NotificationsMenu({ isOpen, hasUnread, onMarkAllRead }: Notifica
   if (!isOpen) return null;
 
   return (
-    <div dir="rtl" className="absolute left-0 mt-2 w-72 sm:w-80 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-teal-500/25 dark:bg-[#0D2628] z-50 animate-in fade-in slide-in-from-top-2">
+    <div dir="rtl" className="absolute top-full left-0 mt-2 w-[calc(100vw-2.75rem)] max-w-[18rem] sm:w-80 sm:max-w-none rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-teal-500/25 dark:bg-[#0D2628] z-50">
       <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-teal-500/20">
         <span className="text-xs font-bold text-slate-900 dark:text-emerald-300">الإشعارات التعليمية</span>
         {hasUnread && (
@@ -57,7 +57,7 @@ export function ProfileMenu({ isOpen, studentName, onClose, onLogout }: ProfileM
   if (!isOpen) return null;
 
   return (
-    <div dir="rtl" className="absolute left-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-teal-500/25 dark:bg-[#0D2628] z-50 animate-in fade-in slide-in-from-top-2">
+    <div dir="rtl" className="absolute top-full left-0 mt-2 w-[calc(100vw-2.75rem)] max-w-[16rem] sm:w-64 sm:max-w-none rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-teal-500/25 dark:bg-[#0D2628] z-50">
       <div className="border-b border-slate-100 pb-2.5 dark:border-teal-500/20">
         <p className="text-xs text-slate-400 dark:text-teal-300/60">مرحباً بك،</p>
         <p className="text-sm font-bold text-slate-900 dark:text-emerald-300 truncate">أهلاً يا {studentName} 🎓</p>

@@ -68,7 +68,7 @@ export default function StudentDashboardPage() {
 
             {/* Responsive Scrollable Container for SVG Chart */}
             <div className="w-full overflow-x-auto no-scrollbar">
-              <div className="min-w-[440px] sm:min-w-0 h-32 sm:h-38">
+              <div className="min-w-[440px] sm:min-w-0 h-32 sm:h-36">
                 <svg viewBox="0 0 660 210" className="w-full h-full">
                   {/* Horizontal grid lines */}
                   {[0, 20, 40, 60, 80, 100].map((val, idx) => {

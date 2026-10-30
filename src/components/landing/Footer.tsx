@@ -97,7 +97,7 @@ export function Footer() {
 
               {/* Ultra Clean Developer Credit Badge */}
               <div
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-teal-500/20 bg-slate-50 dark:bg-[#071719] px-2.5 py-0.5 font-mono text-[11px] text-slate-600 dark:text-slate-300 shadow-sm"
+                className="inline-flex flex-wrap max-w-full items-center gap-1 sm:gap-1.5 rounded-lg border border-slate-200 dark:border-teal-500/20 bg-slate-50 dark:bg-[#071719] px-2 sm:px-2.5 py-0.5 font-mono text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-300 shadow-sm"
                 dir="ltr"
               >
                 <span>{'<Developed by="'}</span>

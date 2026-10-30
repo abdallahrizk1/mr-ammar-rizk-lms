@@ -10,9 +10,9 @@ export const metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#040D0E] text-slate-900 dark:text-slate-100 transition-colors" dir="rtl">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-[#040D0E] text-slate-900 dark:text-slate-100 transition-colors" dir="rtl">
       <TopNavbar />
-      <main className="flex-1 flex flex-col justify-center items-center px-3 py-3 sm:py-5">
+      <main className="flex-1 flex flex-col justify-center items-center w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <MultiStepRegisterForm />
       </main>
       <Footer />
