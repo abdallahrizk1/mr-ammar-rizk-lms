@@ -74,7 +74,7 @@ export function CourseBuilder({ onSelectCourse, selectedCourseId }: CourseBuilde
     setEducationType(c.education_type);
     setValidityDays(String(c.validity_days));
     setIsBundle(c.is_bundle);
-    setBannerImageUrl(c.banner_image_url || '/images/teacher-circle.png');
+    setBannerImageUrl(c.thumbnail_url || c.banner_image_url || '/images/teacher-circle.png');
     setIsModalOpen(true);
   };
 
@@ -93,7 +93,7 @@ export function CourseBuilder({ onSelectCourse, selectedCourseId }: CourseBuilde
         education_type: educationType,
         validity_days: Number(validityDays) || 180,
         is_bundle: isBundle,
-        banner_image_url: bannerImageUrl.trim() || null,
+        thumbnail_url: bannerImageUrl.trim() || null,
         is_published: true,
       };
 

@@ -5,6 +5,7 @@ import { BookOpen, RefreshCw } from 'lucide-react';
 import { CoursesFilterType } from '@/features/courses/courses-types';
 import { CourseCard } from '@/features/courses/CourseCard';
 import { CourseItem } from '@/lib/data/courses-types';
+import { SAMPLE_COURSES } from '@/lib/data/courses-data';
 import { createClient } from '@/lib/supabase/client';
 import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
@@ -17,21 +18,26 @@ export default function StudentCoursesPage() {
     setIsLoading(true);
     try {
       const supabase = createClient();
-      const [coursesRes, enrollmentsRes] = await Promise.all([
-        supabase
-          .from('courses')
-          .select('*')
-          .eq('is_published', true)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false }),
-        supabase.from('course_enrollments').select('course_id, status').eq('status', 'active'),
-      ]);
+      const { data: { session } } = await supabase.auth.getSession();
+      const coursesPromise = supabase
+        .from('courses')
+        .select('*')
+        .eq('is_published', true)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      const enrollmentsPromise = session
+        ? supabase.from('course_enrollments').select('course_id, status').eq('status', 'active')
+        : Promise.resolve({ data: [] });
+
+      const [coursesRes, enrollmentsRes] = await Promise.all([coursesPromise, enrollmentsPromise]);
 
       const stored = getStoredEnrolledCourses();
       const enrolledSet = new Set<string>();
 
       if (enrollmentsRes.data) {
-        enrollmentsRes.data.forEach((e) => enrolledSet.add(e.course_id));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        enrollmentsRes.data.forEach((e: any) => enrolledSet.add(e.course_id));
       }
       stored.forEach((s) => enrolledSet.add(s.id));
 
@@ -49,13 +55,18 @@ export default function StudentCoursesPage() {
           isEnrolled: enrolledSet.has(c.id),
           isTemporary: false,
           progress: 0,
-          bannerImage: c.banner_image_url || '/images/teacher-circle.png',
+          bannerImage: c.thumbnail_url || c.banner_image_url || '/images/teacher-circle.png',
           lecturesCount: 12,
           modules: [],
         }));
         setCoursesList(mapped);
       } else {
-        setCoursesList([]);
+        setCoursesList(
+          SAMPLE_COURSES.map((c) => ({
+            ...c,
+            isEnrolled: enrolledSet.has(c.id),
+          }))
+        );
       }
     } catch {}
     setIsLoading(false);

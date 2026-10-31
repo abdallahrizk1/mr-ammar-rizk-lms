@@ -10,6 +10,7 @@ import { PdfViewerModal } from '@/features/courses/PdfViewerModal';
 import { CrossPlatformHlsPlayer } from '@/features/video-player/CrossPlatformHlsPlayer';
 import { InAppNotificationBanner, InAppNotification } from '@/components/ui/InAppNotificationBanner';
 import { CourseItem, CourseModule, LectureMaterials } from '@/lib/data/courses-types';
+import { SAMPLE_COURSES } from '@/lib/data/courses-data';
 import { mapTreeDataToModules } from '@/features/courses/course-tree-mapper';
 import { createClient } from '@/lib/supabase/client';
 import { recordWatchHistory, getStoredExamSubmissions } from '@/lib/utils/student-storage';
@@ -38,6 +39,13 @@ export default function CourseDetailPage({ params }: PageProps) {
 
   const fetchCourseAndTree = async () => {
     setIsLoading(true);
+    if (!courseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId)) {
+      const sample = SAMPLE_COURSES.find((c) => c.id === courseId) || SAMPLE_COURSES[0];
+      setCourse(sample);
+      setModules(sample.modules || []);
+      setIsLoading(false);
+      return;
+    }
     try {
       const supabase = createClient();
       const [courseRes, treeRes] = await Promise.all([

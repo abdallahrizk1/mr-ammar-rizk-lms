@@ -10,6 +10,7 @@ import { ExamResultModal } from '@/features/exams/ExamResultModal';
 import { UnansweredWarningModal } from '@/features/exams/UnansweredWarningModal';
 import { ExamSubmissionResult } from '@/features/exams/exams-types';
 import { ExamQuestion } from '@/lib/data/exam-types';
+import { SAMPLE_EXAM_QUESTIONS } from '@/lib/data/exam-data';
 import { createClient } from '@/lib/supabase/client';
 import { recordExamSubmission, removeMistakeByQuestionId } from '@/lib/utils/student-storage';
 
@@ -41,6 +42,12 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
   useEffect(() => {
     const initExam = async () => {
       setIsLoading(true);
+      if (!examId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(examId)) {
+        setQuestions(SAMPLE_EXAM_QUESTIONS);
+        setRemainingSeconds(20 * 60);
+        setIsLoading(false);
+        return;
+      }
       try {
         const supabase = createClient();
         const { data, error } = await supabase.rpc('start_or_resume_exam', { p_exam_id: examId });
@@ -107,54 +114,36 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
 
   const executeFinalSubmit = async () => {
     setUnansweredWarningCount(null);
-    if (!attemptId) return;
-
     const optionLetters = ['a', 'b', 'c', 'd'];
     const mappedAnswers: Record<string, string> = {};
-    Object.entries(answers).forEach(([qId, choiceIdx]) => {
-      mappedAnswers[qId] = optionLetters[choiceIdx] || 'a';
-    });
+    Object.entries(answers).forEach(([qId, idx]) => { mappedAnswers[qId] = optionLetters[idx] || 'a'; });
 
-    try {
-      const supabase = createClient();
-      const { data: submitData } = await supabase.rpc('submit_exam_attempt', {
-        p_attempt_id: attemptId,
-        p_answers: mappedAnswers,
-      });
+    let score = 0, pct = 0, passed = false, correct = 0;
+    const solved = Object.keys(answers).length;
 
-      await supabase.rpc('review_submitted_attempt', { p_attempt_id: attemptId });
+    if (attemptId) {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.rpc('submit_exam_attempt', { p_attempt_id: attemptId, p_answers: mappedAnswers });
+        await supabase.rpc('review_submitted_attempt', { p_attempt_id: attemptId });
+        score = Number(data?.score) || 0;
+        pct = Number(data?.score_percentage) || 0;
+        passed = !!data?.passed;
+        correct = Number(data?.correct_answers_count) || 0;
+      } catch {}
+    } else {
+      correct = questions.filter((q) => answers[q.id] === q.correctChoiceIndex).length;
+      score = correct;
+      pct = Math.round((correct / (questions.length || 1)) * 100);
+      passed = pct >= 50;
+    }
 
-      const score = Number(submitData?.score) || 0;
-      const pct = Number(submitData?.score_percentage) || 0;
-      const passed = !!submitData?.passed;
-      const solved = Number(submitData?.solved_questions) || Object.keys(answers).length;
-      const correct = Number(submitData?.correct_answers_count) || 0;
-
-      const result: ExamSubmissionResult = {
-        totalQuestions: questions.length,
-        solvedCount: solved,
-        correctCount: correct,
-        score,
-        percentage: pct,
-        isPassed: passed,
-      };
-
-      recordExamSubmission({
-        examId, courseId, isHomework, score, total: questions.length,
-        percentage: pct, isPassed: passed, examTitle,
-        submittedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      });
-
-      questions.forEach((q) => {
-        if (answers[q.id] === q.correctChoiceIndex) {
-          removeMistakeByQuestionId(q.id, isHomework ? 'homework' : 'quiz');
-        }
-      });
-
-      setWrongCount(questions.length - correct);
-      setSubmissionResult(result);
-      localStorage.removeItem(storageKey);
-    } catch {}
+    const result: ExamSubmissionResult = { totalQuestions: questions.length, solvedCount: solved, correctCount: correct, score, percentage: pct, isPassed: passed };
+    recordExamSubmission({ examId, courseId, isHomework, score, total: questions.length, percentage: pct, isPassed: passed, examTitle, submittedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) });
+    questions.forEach((q) => { if (answers[q.id] === q.correctChoiceIndex) removeMistakeByQuestionId(q.id, isHomework ? 'homework' : 'quiz'); });
+    setWrongCount(questions.length - correct);
+    setSubmissionResult(result);
+    try { localStorage.removeItem(storageKey); } catch {}
   };
 
   const handleRequestSubmit = () => {
@@ -232,11 +221,7 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
       </div>
 
       {unansweredWarningCount !== null && (
-        <UnansweredWarningModal
-          unansweredCount={unansweredWarningCount}
-          onCancel={() => setUnansweredWarningCount(null)}
-          onConfirm={executeFinalSubmit}
-        />
+        <UnansweredWarningModal unansweredCount={unansweredWarningCount} onCancel={() => setUnansweredWarningCount(null)} onConfirm={executeFinalSubmit} />
       )}
 
       {submissionResult && (

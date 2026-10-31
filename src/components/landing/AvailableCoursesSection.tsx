@@ -10,7 +10,7 @@ interface DynamicCourse {
   title: string;
   grade_level: string;
   price: number;
-  banner_image_url: string | null;
+  thumbnail_url: string | null;
   created_at: string;
   description: string | null;
 }
@@ -21,6 +21,12 @@ const FILTERS = [
   { id: '2', label: 'الصف الثاني' },
   { id: '3', label: 'الصف الثالث' },
   { id: 'free', label: 'مجاني' },
+];
+
+const FALLBACK_COURSES: DynamicCourse[] = [
+  { id: 'c-chapter-1', title: 'كورس الباب الأول: الدعامة والحركة في الكائنات الحية', grade_level: '3', price: 350, thumbnail_url: '/images/teacher-circle.png', created_at: '', description: 'الدعامة في النبات، الهيكل العظمي، والحركة في الإنسان.' },
+  { id: 'c-comprehensive', title: 'الكورس الشامل في الأحياء للثانوية العامة 2027', grade_level: '3', price: 1200, thumbnail_url: '/images/teacher-circle.png', created_at: '', description: 'المنهج كاملاً من التأسيس حتى ليلة الامتحان مع مستر عمار رزق.' },
+  { id: 'c-free-foundation', title: 'كورس الامتحان التأسيسي في الأحياء (مجاني)', grade_level: '3', price: 0, thumbnail_url: '/images/teacher-circle.png', created_at: '', description: 'مراجعة الأساسيات والأفكار التراكمية في مادة الأحياء.' },
 ];
 
 export function AvailableCoursesSection() {
@@ -36,13 +42,16 @@ export function AvailableCoursesSection() {
         const supabase = createClient();
         const { data } = await supabase
           .from('courses')
-          .select('id, title, grade_level, price, banner_image_url, created_at, description')
+          .select('id, title, grade_level, price, thumbnail_url, created_at, description')
           .eq('is_published', true)
           .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
-        if (data) setCourses(data);
-      } catch {}
+        if (data && data.length > 0) setCourses(data);
+        else setCourses(FALLBACK_COURSES);
+      } catch {
+        setCourses(FALLBACK_COURSES);
+      }
       setIsLoading(false);
     };
 
@@ -140,7 +149,7 @@ export function AvailableCoursesSection() {
                   <div className="relative h-24 sm:h-28 w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#071719] mb-2 flex items-center justify-center border border-slate-200/50 dark:border-teal-500/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={course.banner_image_url || '/images/teacher-circle.png'}
+                      src={course.thumbnail_url || '/images/teacher-circle.png'}
                       alt={course.title}
                       className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
                     />

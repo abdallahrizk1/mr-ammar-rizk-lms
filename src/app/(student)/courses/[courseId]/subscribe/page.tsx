@@ -9,6 +9,7 @@ import { VodafoneInstapayMethod } from '@/features/payments/VodafoneInstapayMeth
 import { InstantActivationCelebration } from '@/features/payments/InstantActivationCelebration';
 import { PaymentStep, PaymentMethodType } from '@/features/payments/payments-types';
 import { CourseItem } from '@/lib/data/courses-types';
+import { SAMPLE_COURSES } from '@/lib/data/courses-data';
 import { createClient } from '@/lib/supabase/client';
 import { addTemporaryEnrolledCourse } from '@/lib/utils/student-storage';
 
@@ -43,6 +44,11 @@ export default function CourseSubscribePage({ params }: PageProps) {
 
   useEffect(() => {
     const fetchCourse = async () => {
+      if (!courseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId)) {
+        const sample = SAMPLE_COURSES.find((c) => c.id === courseId);
+        if (sample) setCourse(sample);
+        return;
+      }
       try {
         const supabase = createClient();
         const { data } = await supabase.from('courses').select('*').eq('id', courseId).single();

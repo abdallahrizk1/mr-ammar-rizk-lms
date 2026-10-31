@@ -5,15 +5,39 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { CheckSquare, Lightbulb, Bookmark, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
 export default function StudentDashboardPage() {
+  const [localName, setLocalName] = React.useState<string>('');
+  const [localCourses, setLocalCourses] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('lms_preview_auth_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.fullName) setLocalName(parsed.fullName);
+      }
+      const stored = getStoredEnrolledCourses();
+      if (stored && stored.length > 0) setLocalCourses(stored);
+    } catch {}
+  }, []);
+
   const { data: dashboardData, isLoading, refetch } = useQuery({
     queryKey: ['student_dashboard_data'],
     queryFn: async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase.rpc('get_student_dashboard_data');
-      if (error) throw error;
-      return data;
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc('get_student_dashboard_data');
+        if (error) {
+          console.warn('Dashboard RPC notice:', error.message);
+          return null;
+        }
+        return data;
+      } catch (err) {
+        console.warn('Dashboard fetch notice:', err);
+        return null;
+      }
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -21,8 +45,11 @@ export default function StudentDashboardPage() {
 
   const profile = dashboardData?.profile;
   const stats = dashboardData?.student_stats || { mistakes_count: 0, completed_lessons_count: 0 };
-  const enrolledCourses = dashboardData?.enrolled_courses || [];
+  const enrolledCourses = (dashboardData?.enrolled_courses && dashboardData.enrolled_courses.length > 0)
+    ? dashboardData.enrolled_courses
+    : localCourses;
   const recentExams = dashboardData?.recent_exam_attempts || [];
+  const greetingName = profile?.full_name || localName;
 
   return (
     <div className="space-y-3 sm:space-y-4" dir="rtl">
@@ -112,7 +139,7 @@ export default function StudentDashboardPage() {
             </div>
           </div>
           <p className="mt-1.5 text-[10px] sm:text-[11px] text-slate-400 dark:text-teal-200/60 text-center">
-            {profile?.full_name ? `مرحباً بك يا ${profile.full_name} في منصة الأحياء 🧬` : '*تابع محاضراتك يومياً لتسجيل أعلى معدل تفوق!'}
+            {greetingName ? `مرحباً بك يا ${greetingName} في منصة الأحياء 🧬` : '*تابع محاضراتك يومياً لتسجيل أعلى معدل تفوق!'}
           </p>
         </div>
 

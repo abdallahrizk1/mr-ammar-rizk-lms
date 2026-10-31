@@ -150,7 +150,7 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: mistakeRows } = await supabase
     .from('student_mistakes_bank')
-    .select('id, question_id, exam_id, source_type, wrong_option, created_at, exam_questions:question_id(id, question_text, image_url, option_a, option_b, option_c, option_d, correct_option, explanation), exams:exam_id(title)')
+    .select('id, question_id, exam_id, source_type, wrong_option, created_at, exam_questions:question_id(id, question_text, image_url, correct_option), exams:exam_id(title)')
     .eq('student_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -164,15 +164,10 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
       questionId: m.question_id,
       questionText: q?.question_text || 'سؤال مراجعة',
       diagramTitle: q?.image_url ? 'رسم توضيحي للمسألة' : undefined,
-      choices: [
-        q?.option_a || 'الاختيار (أ)',
-        q?.option_b || 'الاختيار (ب)',
-        q?.option_c || 'الاختيار (ج)',
-        q?.option_d || 'الاختيار (د)',
-      ],
+      choices: ['( أ )', '( ب )', '( ج )', '( د )'],
       studentChoiceIndex: optToIndex(m.wrong_option),
       correctChoiceIndex: optToIndex(q?.correct_option),
-      explanation: q?.explanation || 'راجع شرح المحاضرة المرتبط بهذا السؤال.',
+      explanation: 'راجع شرح المحاضرة المرتبط بهذا السؤال واستعن بالرسم التوضيحي للحل.',
     };
   });
 

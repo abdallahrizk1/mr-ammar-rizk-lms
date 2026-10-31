@@ -26,7 +26,8 @@ export interface AdminCourse {
   price: number;
   validity_days: number;
   is_bundle: boolean;
-  banner_image_url: string | null;
+  thumbnail_url?: string | null;
+  banner_image_url?: string | null;
   is_published: boolean;
   created_at: string;
   deleted_at: string | null;
