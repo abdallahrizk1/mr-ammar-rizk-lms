@@ -106,6 +106,11 @@ async function verifyJwtOnEdge(token: string, secret?: string): Promise<Record<s
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Allow admin login page to be accessed publicly without token
+  if (pathname === '/admin/login') {
+    return NextResponse.next();
+  }
+
   // Only guard /admin routes
   if (!pathname.startsWith('/admin')) {
     return NextResponse.next();
@@ -115,7 +120,7 @@ export async function middleware(request: NextRequest) {
   const secret = process.env.SUPABASE_JWT_SECRET;
 
   if (!token) {
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL('/admin/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
