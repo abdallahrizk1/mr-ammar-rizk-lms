@@ -78,6 +78,11 @@ export function Footer() {
                   تسجيل الدخول
                 </Link>
               </li>
+              <li>
+                <Link href="/admin/login" prefetch={false} className="hover:text-bio-teal dark:hover:text-emerald-400 transition text-slate-400 dark:text-slate-500">
+                  بوابة الكادر التعليمي
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -196,6 +196,12 @@ export function LoginForm() {
         <Link prefetch={false} href="/register" className="font-bold text-bio-teal hover:underline dark:text-emerald-400">إنشاء حساب جديد هنا</Link>
       </p>
 
+      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-teal-500/15 text-center">
+        <Link prefetch={false} href="/admin/login" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-bio-teal dark:text-slate-400 dark:hover:text-emerald-300 transition">
+          <span>👨‍🏫 بوابة دخول المدرس والمساعدين</span>
+        </Link>
+      </div>
+
       {isForgotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 text-right text-slate-900 shadow-2xl dark:border-teal-500/30 dark:bg-[#0D2628] dark:text-white">

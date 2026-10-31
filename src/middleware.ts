@@ -127,7 +127,9 @@ export async function middleware(request: NextRequest) {
 
   const payload = await verifyJwtOnEdge(token, secret);
   if (!payload) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/admin/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   const role = payload.app_metadata?.role || payload.user_metadata?.role;
@@ -148,8 +150,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Regular students are blocked from all /admin pages
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+  // If user has a student or non-staff session, redirect them to admin login so they can log in with staff credentials
+  const adminLoginUrl = new URL('/admin/login', request.url);
+  adminLoginUrl.searchParams.set('redirect', pathname);
+  return NextResponse.redirect(adminLoginUrl);
 }
 
 export const config = {
