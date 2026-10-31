@@ -10,7 +10,6 @@ import { ExamResultModal } from '@/features/exams/ExamResultModal';
 import { UnansweredWarningModal } from '@/features/exams/UnansweredWarningModal';
 import { ExamSubmissionResult } from '@/features/exams/exams-types';
 import { ExamQuestion } from '@/lib/data/exam-types';
-import { SAMPLE_EXAM_QUESTIONS } from '@/lib/data/exam-data';
 import { createClient } from '@/lib/supabase/client';
 import { recordExamSubmission, removeMistakeByQuestionId } from '@/lib/utils/student-storage';
 
@@ -43,8 +42,7 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
     const initExam = async () => {
       setIsLoading(true);
       if (!examId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(examId)) {
-        setQuestions(SAMPLE_EXAM_QUESTIONS);
-        setRemainingSeconds(20 * 60);
+        setErrorMessage('معرّف الامتحان غير صحيح');
         setIsLoading(false);
         return;
       }

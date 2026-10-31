@@ -5,7 +5,6 @@ import { BookOpen, RefreshCw } from 'lucide-react';
 import { CoursesFilterType } from '@/features/courses/courses-types';
 import { CourseCard } from '@/features/courses/CourseCard';
 import { CourseItem } from '@/lib/data/courses-types';
-import { SAMPLE_COURSES } from '@/lib/data/courses-data';
 import { createClient } from '@/lib/supabase/client';
 import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
@@ -61,14 +60,11 @@ export default function StudentCoursesPage() {
         }));
         setCoursesList(mapped);
       } else {
-        setCoursesList(
-          SAMPLE_COURSES.map((c) => ({
-            ...c,
-            isEnrolled: enrolledSet.has(c.id),
-          }))
-        );
+        setCoursesList([]);
       }
-    } catch {}
+    } catch {
+      setCoursesList([]);
+    }
     setIsLoading(false);
   };
 

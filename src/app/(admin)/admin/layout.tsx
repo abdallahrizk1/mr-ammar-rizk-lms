@@ -84,7 +84,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           const count = Object.keys(state).length;
           setOnlineCount(Math.max(1, count));
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
             await channel.track({ online_at: new Date().toISOString(), role: user?.role || 'staff' });
           }

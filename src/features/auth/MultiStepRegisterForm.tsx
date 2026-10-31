@@ -103,13 +103,6 @@ export function MultiStepRegisterForm() {
       // Ignored if session handled by action
     }
 
-    localStorage.setItem('lms_preview_auth_user', JSON.stringify({
-      fullName: formData.fullName,
-      phone: formData.phone,
-      virtualEmail: res.virtualEmail,
-      gradeId: formData.gradeId,
-      reviewStatus: 'pending_review',
-    }));
     setIsSubmitting(false);
     setIsSuccess(true);
   };

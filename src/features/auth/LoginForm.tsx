@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Lock, Phone, LogIn, AlertCircle, HelpCircle, Shield, X, MessageSquare, Eye, EyeOff } from 'lucide-react';
-import { normalizeDigits, normalizePhoneNumber, sanitizePhoneInput } from '@/lib/utils/input-normalizer';
+import { normalizeDigits, normalizePhoneNumber, sanitizePhoneInput, phoneToVirtualEmail } from '@/lib/utils/input-normalizer';
+import { createClient } from '@/lib/supabase/client';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 5 * 60 * 1000;
@@ -63,8 +64,6 @@ export function LoginForm() {
     setErrorMsg('');
 
     try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const { phoneToVirtualEmail } = await import('@/lib/utils/input-normalizer');
       const supabase = createClient();
       const virtualEmail = phoneToVirtualEmail(cleanPhone);
 
@@ -89,14 +88,6 @@ export function LoginForm() {
       }
 
       const userRole = data.user?.app_metadata?.role;
-      const fullName = data.user?.user_metadata?.full_name || 'طالب منصة عمار رزق';
-      localStorage.setItem('lms_preview_auth_user', JSON.stringify({
-        fullName,
-        phone: cleanPhone,
-        role: userRole || 'student',
-        userId: data.user?.id,
-      }));
-
       setIsSubmitting(false);
       if (userRole === 'super_admin' || userRole === 'admin' || userRole === 'assistant') {
         router.push('/admin');

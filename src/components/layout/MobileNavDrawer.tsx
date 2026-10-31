@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutGrid, BookOpen, Users, User, LogOut, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface MobileNavDrawerProps {
   isOpen: boolean;
@@ -24,8 +25,11 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
 
   if (!isOpen) return null;
 
-  const handleLogout = () => {
-    localStorage.removeItem('lms_preview_auth_user');
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {}
     onClose();
     router.push('/login');
   };

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   LogOut,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface CollapsibleSidebarProps {
   className?: string;
@@ -29,11 +30,14 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (onLogout) {
       onLogout();
     } else {
-      localStorage.removeItem('lms_preview_auth_user');
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch {}
       router.push('/login');
     }
   };

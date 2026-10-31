@@ -42,10 +42,10 @@ export function AuditLogsAndTrashBin() {
       if (logsRes.data) setLogs(logsRes.data);
 
       const trash: SoftDeletedItem[] = [
-        ...(coursesRes.data || []).map((c) => ({ id: c.id, type: 'course' as const, title: c.title, deleted_at: c.deleted_at })),
-        ...(lessonsRes.data || []).map((l) => ({ id: l.id, type: 'lesson' as const, title: l.title, deleted_at: l.deleted_at })),
-        ...(examsRes.data || []).map((e) => ({ id: e.id, type: 'exam' as const, title: e.title, deleted_at: e.deleted_at })),
-        ...(studentsRes.data || []).map((s) => ({ id: s.id, type: 'student' as const, title: s.full_name, deleted_at: s.deleted_at })),
+        ...(coursesRes.data || []).map((c: any) => ({ id: c.id, type: 'course' as const, title: c.title, deleted_at: c.deleted_at })),
+        ...(lessonsRes.data || []).map((l: any) => ({ id: l.id, type: 'lesson' as const, title: l.title, deleted_at: l.deleted_at })),
+        ...(examsRes.data || []).map((e: any) => ({ id: e.id, type: 'exam' as const, title: e.title, deleted_at: e.deleted_at })),
+        ...(studentsRes.data || []).map((s: any) => ({ id: s.id, type: 'student' as const, title: s.full_name, deleted_at: s.deleted_at })),
       ];
       setTrashItems(trash);
     } catch {}

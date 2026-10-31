@@ -8,16 +8,10 @@ import { createClient } from '@/lib/supabase/client';
 import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
 export default function StudentDashboardPage() {
-  const [localName, setLocalName] = React.useState<string>('');
   const [localCourses, setLocalCourses] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     try {
-      const saved = localStorage.getItem('lms_preview_auth_user');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.fullName) setLocalName(parsed.fullName);
-      }
       const stored = getStoredEnrolledCourses();
       if (stored && stored.length > 0) setLocalCourses(stored);
     } catch {}
@@ -49,7 +43,7 @@ export default function StudentDashboardPage() {
     ? dashboardData.enrolled_courses
     : localCourses;
   const recentExams = dashboardData?.recent_exam_attempts || [];
-  const greetingName = profile?.full_name || localName;
+  const greetingName = profile?.full_name || 'طالب منصة عمار';
 
   return (
     <div className="space-y-3 sm:space-y-4" dir="rtl">

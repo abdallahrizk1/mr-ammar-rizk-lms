@@ -51,7 +51,7 @@ export function ModuleAndLectureManager({
             title: m.modules?.title,
             sort_order: m.sort_order ?? idx + 1,
           }))
-          .filter((m) => !!m.id);
+          .filter((m: any) => !!m.id);
 
         setModules(mods);
 
@@ -72,7 +72,7 @@ export function ModuleAndLectureManager({
 
           if (lessonsData) {
             const mapped: Record<string, AdminLesson[]> = {};
-            lessonsData.forEach((l) => {
+            lessonsData.forEach((l: any) => {
               if (!mapped[l.module_id]) mapped[l.module_id] = [];
               mapped[l.module_id].push(l);
             });

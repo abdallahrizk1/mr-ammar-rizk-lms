@@ -4,19 +4,26 @@ import React from 'react';
 import Link from 'next/link';
 import { Home, LayoutDashboard, Shield, LogOut, CheckCheck } from 'lucide-react';
 
-export const INITIAL_NOTIFICATIONS = [
-  { id: 'n1', title: 'تم إضافة واجب جديد على درس الدعامة في الإنسان', time: 'منذ ساعتين' },
-  { id: 'n2', title: 'اختبار تجريبي متاح الآن لمدة 48 ساعة', time: 'منذ يوم' },
-  { id: 'n3', title: 'مرحباً بك في منصة مستر عمار رزق للأحياء!', time: 'منذ يومين' },
-];
+export interface NotificationItem {
+  id: string;
+  title: string;
+  body?: string;
+  created_at?: string;
+}
 
 interface NotificationsMenuProps {
   isOpen: boolean;
   hasUnread: boolean;
   onMarkAllRead: () => void;
+  notifications?: NotificationItem[];
 }
 
-export function NotificationsMenu({ isOpen, hasUnread, onMarkAllRead }: NotificationsMenuProps) {
+export function NotificationsMenu({
+  isOpen,
+  hasUnread,
+  onMarkAllRead,
+  notifications = [],
+}: NotificationsMenuProps) {
   if (!isOpen) return null;
 
   return (
@@ -35,12 +42,23 @@ export function NotificationsMenu({ isOpen, hasUnread, onMarkAllRead }: Notifica
         )}
       </div>
       <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
-        {INITIAL_NOTIFICATIONS.map((n) => (
-          <div key={n.id} className="rounded-xl bg-slate-50 p-2.5 text-right transition hover:bg-slate-100 dark:bg-[#071719] dark:hover:bg-[#0a2022] border border-transparent dark:border-teal-500/10">
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{n.title}</p>
-            <span className="text-[10px] text-slate-400 dark:text-teal-300/60 mt-1 block">{n.time}</span>
+        {notifications.length === 0 ? (
+          <div className="py-6 text-center text-xs text-slate-400 dark:text-teal-300/60">
+            لا توجد إشعارات جديدة حالياً
           </div>
-        ))}
+        ) : (
+          notifications.map((n) => (
+            <div key={n.id} className="rounded-xl bg-slate-50 p-2.5 text-right transition hover:bg-slate-100 dark:bg-[#071719] dark:hover:bg-[#0a2022] border border-transparent dark:border-teal-500/10">
+              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{n.title}</p>
+              {n.body && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{n.body}</p>}
+              {n.created_at && (
+                <span className="text-[10px] text-slate-400 dark:text-teal-300/60 mt-1 block">
+                  {new Date(n.created_at).toLocaleDateString('ar-EG')}
+                </span>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

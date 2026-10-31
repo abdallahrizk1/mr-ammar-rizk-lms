@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, Bell, User, Menu } from 'lucide-react';
 import { MobileNavDrawer } from './MobileNavDrawer';
-import { INITIAL_NOTIFICATIONS, NotificationsMenu, ProfileMenu } from './NavDropdowns';
+import { NotificationsMenu, ProfileMenu, type NotificationItem } from './NavDropdowns';
+import { createClient } from '@/lib/supabase/client';
 
 interface TopNavbarProps {
   isLoggedIn?: boolean;
@@ -19,25 +20,40 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [studentName, setStudentName] = useState('طالب منصة عمار');
 
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
-    const latestId = INITIAL_NOTIFICATIONS[0]?.id || 'n1';
-    if (localStorage.getItem('lms_notifications_read') === 'true' || localStorage.getItem('last_notified_id') === latestId) {
-      setHasUnreadNotifications(false);
-    }
-    const userStr = localStorage.getItem('lms_preview_auth_user');
-    if (userStr) {
+    if (!isLoggedIn) return;
+
+    const supabase = createClient();
+    const loadUserData = async () => {
       try {
-        const u = JSON.parse(userStr);
-        if (u.fullName) setStudentName(u.fullName);
+        const { data } = await supabase.auth.getUser();
+        if (data?.user?.user_metadata?.full_name) {
+          setStudentName(data.user.user_metadata.full_name);
+        }
       } catch {}
-    }
-  }, []);
+
+      try {
+        const { data } = await supabase
+          .from('notifications')
+          .select('id, title, body, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (data && data.length > 0) {
+          setNotifications(data as NotificationItem[]);
+          setHasUnreadNotifications(true);
+        }
+      } catch {}
+    };
+    loadUserData();
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const handleClickOutside = (e: PointerEvent) => {
@@ -52,15 +68,19 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
 
   const isDark = mounted ? (resolvedTheme === 'dark' || theme === 'dark') : false;
 
-  const handleMarkAllRead = () => {
-    const latestId = INITIAL_NOTIFICATIONS[0]?.id || 'n1';
+  const handleMarkAllRead = async () => {
     setHasUnreadNotifications(false);
-    localStorage.setItem('lms_notifications_read', 'true');
-    localStorage.setItem('last_notified_id', latestId);
+    try {
+      const supabase = createClient();
+      await supabase.rpc('mark_all_notifications_read');
+    } catch {}
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('lms_preview_auth_user');
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {}
     setIsProfileOpen(false);
     router.push('/login');
   };
@@ -69,8 +89,6 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
     <>
       <header ref={navRef} className="sticky top-0 z-40 w-full pt-3 sm:pt-2 px-3 sm:px-6 max-w-7xl mx-auto">
         <div className="flex h-12 sm:h-14 items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2.5 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
-          
-          {/* Right Side (RTL Start): Mobile Drawer Trigger on Right + Desktop Brand Logo */}
           <div className="flex items-center gap-2 shrink-0">
             {isLoggedIn && (
               <button
@@ -92,7 +110,6 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
             </Link>
           </div>
 
-          {/* Center (Mobile Only): Clean centered brand logo */}
           <div className="flex md:hidden items-center justify-center">
             <Link href="/" prefetch={false} className="flex items-center">
               <img
@@ -103,9 +120,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
             </Link>
           </div>
 
-          {/* Left Side (RTL End): Theme Switch + Logged-in controls OR Auth buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Capsule Theme Toggle Switch (Forced LTR to prevent RTL knob overflow) */}
             <button
               type="button"
               dir="ltr"
@@ -126,7 +141,6 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
 
             {isLoggedIn ? (
               <div className="flex items-center gap-1.5 sm:gap-2 relative">
-                {/* Notification Bell */}
                 <button
                   type="button"
                   onClick={() => {
@@ -142,7 +156,6 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
                   )}
                 </button>
 
-                {/* Profile Icon */}
                 <button
                   type="button"
                   onClick={() => {
@@ -159,6 +172,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
                   isOpen={isNotificationsOpen}
                   hasUnread={hasUnreadNotifications}
                   onMarkAllRead={handleMarkAllRead}
+                  notifications={notifications}
                 />
 
                 <ProfileMenu
@@ -188,11 +202,9 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
               </div>
             )}
           </div>
-
         </div>
       </header>
 
-      {/* Mobile Drawer (visible when opened on mobile) */}
       <MobileNavDrawer
         isOpen={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
