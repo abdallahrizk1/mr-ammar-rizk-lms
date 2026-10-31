@@ -22,14 +22,13 @@ export function CrossPlatformHlsPlayer({
   const targetSeekTimeRef = useRef<number>(0); const lastSeekTimestampRef = useRef<number>(0);
   const completionSentRef = useRef<boolean>(false); const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const bufferingTimeoutRef = useRef<NodeJS.Timeout | null>(null); const controlsVisibleRef = useRef<boolean>(true);
-  const storageKey = `lms_lesson_pos_${lessonId}`;
+  const seekDebounceRef = useRef<NodeJS.Timeout | null>(null); const storageKey = `lms_lesson_pos_${lessonId}`;
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false); const [isMuted, setIsMuted] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(1); const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [quality, setQuality] = useState<string>('1080p FHD'); const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0); const [duration, setDuration] = useState<number>(0);
-  const [isBuffering, setIsBuffering] = useState<boolean>(false);
-  const [areControlsVisible, setAreControlsVisible] = useState<boolean>(true);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false); const [areControlsVisible, setAreControlsVisible] = useState<boolean>(true);
   controlsVisibleRef.current = areControlsVisible;
 
   const resetHideTimer = useCallback(() => {
@@ -58,6 +57,7 @@ export function CrossPlatformHlsPlayer({
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       if (bufferingTimeoutRef.current) clearTimeout(bufferingTimeoutRef.current);
+      if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
     };
   }, [isPlaying, resetHideTimer]);
 
@@ -119,15 +119,13 @@ export function CrossPlatformHlsPlayer({
   const handleSeek = useCallback((newTimeSec: number) => {
     const clamped = Math.max(0, duration > 0 ? Math.min(duration, newTimeSec) : Math.max(0, newTimeSec));
     targetSeekTimeRef.current = clamped; lastSeekTimestampRef.current = Date.now();
-    clearBuffering(); setCurrentTime(clamped); const video = videoRef.current;
-    if (video) { try { video.currentTime = clamped; } catch {} }
+    clearBuffering(); setCurrentTime(clamped);
+    if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
+    seekDebounceRef.current = setTimeout(() => { const v = videoRef.current; if (v) { try { v.currentTime = clamped; } catch {} } }, 50);
     const now = Date.now();
-    if (now - lastSavedAtRef.current >= 1500) {
-      try { localStorage.setItem(storageKey, String(Math.floor(clamped))); } catch {}
-      lastSavedAtRef.current = now;
-    }
+    if (now - lastSavedAtRef.current >= 1500) { try { localStorage.setItem(storageKey, String(Math.floor(clamped))); } catch {} lastSavedAtRef.current = now; }
     if (duration > 0 && clamped >= duration) {
-      setIsPlaying(false); if (video) video.pause();
+      setIsPlaying(false); if (videoRef.current) videoRef.current.pause();
       if (!completionSentRef.current && onLessonComplete) { completionSentRef.current = true; onLessonComplete(lessonId); }
     }
   }, [clearBuffering, duration, lessonId, onLessonComplete, storageKey]);

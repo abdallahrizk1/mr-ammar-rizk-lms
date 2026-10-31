@@ -7,9 +7,6 @@ import { Lock, Phone, ShieldCheck, AlertCircle, Eye, EyeOff, GraduationCap } fro
 import { normalizePhoneNumber, sanitizePhoneInput, normalizeDigits } from '@/lib/utils/input-normalizer';
 import { createClient } from '@/lib/supabase/client';
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 5 * 60 * 1000;
-
 export function AdminLoginForm() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
@@ -17,36 +14,16 @@ export function AdminLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
-  const [, setTick] = useState(0);
 
   useEffect(() => {
-    const savedLockout = localStorage.getItem('lms_admin_login_lockout_until');
-    if (savedLockout && Number(savedLockout) > Date.now()) {
-      setLockoutUntil(Number(savedLockout));
-    }
+    // Clear any previous lockout immediately on page load
+    try {
+      localStorage.removeItem('lms_admin_login_lockout_until');
+    } catch {}
   }, []);
-
-  useEffect(() => {
-    if (!lockoutUntil || lockoutUntil <= Date.now()) return;
-    const timer = setInterval(() => {
-      if (Date.now() >= lockoutUntil) {
-        setLockoutUntil(null);
-        localStorage.removeItem('lms_admin_login_lockout_until');
-      } else {
-        setTick((t) => t + 1);
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [lockoutUntil]);
-
-  const isLocked = lockoutUntil !== null && lockoutUntil > Date.now();
-  const remainingSeconds = isLocked ? Math.ceil((lockoutUntil! - Date.now()) / 1000) : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLocked) return;
 
     const cleanPhone = normalizePhoneNumber(phone);
     if (!/^01[0125]\d{8}$/.test(cleanPhone)) {
@@ -73,8 +50,8 @@ export function AdminLoginForm() {
 
       if (candidateEmails.length === 0) {
         candidateEmails = [
-          `${cleanPhone}@student.platform.local`,
           `${cleanPhone}@teacher.platform.local`,
+          `${cleanPhone}@student.platform.local`,
           `${cleanPhone}@staff.platform.local`,
         ];
       }
@@ -99,20 +76,11 @@ export function AdminLoginForm() {
           lastError?.status === 429 ||
           lastError?.code === 'over_request_rate_limit' ||
           lastError?.message?.toLowerCase().includes('rate limit');
-        const nextAttempts = failedAttempts + 1;
-        setFailedAttempts(nextAttempts);
 
-        if (isRateLimit || nextAttempts >= MAX_FAILED_ATTEMPTS) {
-          const lockTime = Date.now() + LOCKOUT_DURATION_MS;
-          setLockoutUntil(lockTime);
-          localStorage.setItem('lms_admin_login_lockout_until', String(lockTime));
-          setErrorMsg(
-            isRateLimit
-              ? 'تم حظر المحاولات مؤقتاً (Rate Limit) لحماية الحساب لكثرة الطلبات. يرجى الانتظار 5 دقائق.'
-              : 'تم قفل محاولات تسجيل الدخول لمدة 5 دقائق بعد 5 محاولات خاطئة لحماية لوحة التحكم'
-          );
+        if (isRateLimit) {
+          setErrorMsg('تم حظر المحاولات مؤقتاً لحماية الحساب لكثرة الطلبات. يرجى الانتظار دقيقة.');
         } else {
-          setErrorMsg(`بيانات الدخول غير صحيحة. متبقي ${MAX_FAILED_ATTEMPTS - nextAttempts} محاولات`);
+          setErrorMsg('بيانات الدخول غير صحيحة، يرجى التأكد من رقم الهاتف وكلمة السر');
         }
         setIsSubmitting(false);
         return;
@@ -163,13 +131,7 @@ export function AdminLoginForm() {
         </p>
       </div>
 
-      {isLocked && (
-        <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-center text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-300">
-          ⚠️ تم قفل محاولات الدخول مؤقتاً لحماية لوحة التحكم. يرجى الانتظار {remainingSeconds} ثانية.
-        </div>
-      )}
-
-      {errorMsg && !isLocked && (
+      {errorMsg && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs sm:text-sm font-semibold text-rose-600 dark:text-rose-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{errorMsg}</span>
@@ -187,7 +149,6 @@ export function AdminLoginForm() {
               type="tel"
               inputMode="numeric"
               dir="ltr"
-              disabled={isLocked}
               value={phone}
               onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
               placeholder="012XXXXXXXX"
@@ -206,7 +167,6 @@ export function AdminLoginForm() {
               id="admin-password"
               type={showPassword ? 'text' : 'password'}
               dir="ltr"
-              disabled={isLocked}
               value={password}
               onChange={(e) => setPassword(normalizeDigits(e.target.value))}
               placeholder="••••••••"
@@ -225,7 +185,7 @@ export function AdminLoginForm() {
 
         <button
           type="submit"
-          disabled={isSubmitting || isLocked}
+          disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95 disabled:opacity-50"
         >
           <ShieldCheck className="h-4 w-4" />

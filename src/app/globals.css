@@ -73,10 +73,14 @@ input::-ms-clear {
 }
 
 /* Force strict LTR direction on video player seek inputs */
+.video-player-controls input[type="range"],
+.video-player-seek-bar,
+.video-player-seek-bar input,
 input[type="range"][dir="ltr"],
 .group\/bar input[type="range"] {
   direction: ltr !important;
   writing-mode: horizontal-tb !important;
+  unicode-bidi: isolate !important;
 }
 
 

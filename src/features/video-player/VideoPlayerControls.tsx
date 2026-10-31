@@ -29,50 +29,58 @@ export function VideoPlayerControls({
   const [openMenu, setOpenMenu] = useState<'speed' | 'quality' | null>(null);
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubTime, setScrubTime] = useState<number | null>(null);
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
   const lastThrottledSeekRef = useRef<number>(0);
-  const seekThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const safeDuration = Math.max(1, duration);
   const isEnded = duration > 0 && currentTime >= duration;
   const activeTime = isScrubbing && scrubTime !== null ? scrubTime : currentTime;
   const progressPercent = Math.min(100, Math.max(0, (activeTime / safeDuration) * 100));
 
   const commitSeek = useCallback((time: number) => {
-    if (seekThrottleTimerRef.current) clearTimeout(seekThrottleTimerRef.current);
-    onSeek(time);
+    lastThrottledSeekRef.current = Date.now();
+    const clamped = Math.max(0, Math.min(safeDuration, time));
+    onSeek(clamped);
     setIsScrubbing(false);
     setTimeout(() => setScrubTime(null), 80);
-  }, [onSeek]);
+  }, [onSeek, safeDuration]);
 
-  const handlePointerUp = useCallback(() => {
-    const target = scrubTime !== null ? scrubTime : currentTime;
-    commitSeek(target);
-  }, [commitSeek, currentTime, scrubTime]);
+  const calculateTimeFromPointer = useCallback((clientX: number): number => {
+    const bar = progressBarRef.current;
+    if (!bar) return 0;
+    const rect = bar.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    return (offsetX / rect.width) * safeDuration;
+  }, [safeDuration]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    setScrubTime(val);
-    if (!isScrubbing) {
-      commitSeek(val);
-      return;
-    }
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    setIsScrubbing(true);
+    setScrubTime(calculateTimeFromPointer(e.clientX));
+  }, [calculateTimeFromPointer]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbing) return;
+    e.stopPropagation();
+    const newTime = calculateTimeFromPointer(e.clientX);
+    setScrubTime(newTime);
     const now = Date.now();
-    if (now - lastThrottledSeekRef.current >= 180) {
+    if (now - lastThrottledSeekRef.current >= 200) {
       lastThrottledSeekRef.current = now;
-      onSeek(val);
-    } else {
-      if (seekThrottleTimerRef.current) clearTimeout(seekThrottleTimerRef.current);
-      seekThrottleTimerRef.current = setTimeout(() => {
-        lastThrottledSeekRef.current = Date.now();
-        onSeek(val);
-      }, 180);
+      onSeek(newTime);
     }
-  }, [commitSeek, isScrubbing, onSeek]);
+  }, [calculateTimeFromPointer, isScrubbing, onSeek]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbing) return;
+    e.stopPropagation();
+    commitSeek(calculateTimeFromPointer(e.clientX));
+  }, [calculateTimeFromPointer, commitSeek, isScrubbing]);
 
   useEffect(() => {
     setOpenMenu(null);
-    return () => {
-      if (seekThrottleTimerRef.current) clearTimeout(seekThrottleTimerRef.current);
-    };
   }, [isFullscreen]);
 
   return (
@@ -82,7 +90,7 @@ export function VideoPlayerControls({
       )}
       <div
         dir="ltr"
-        style={{ direction: 'ltr' }}
+        style={{ direction: 'ltr', unicodeBidi: 'isolate' }}
         onClick={(e) => e.stopPropagation()}
         className={`video-player-controls absolute inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-1 pt-3 pb-1 sm:px-3 sm:pt-6 sm:pb-3 text-white select-none transition-opacity duration-300 ${
           isVisible || openMenu ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -90,9 +98,14 @@ export function VideoPlayerControls({
       >
         {/* Interactive Seek Bar */}
         <div
+          ref={progressBarRef}
           dir="ltr"
-          style={{ direction: 'ltr' }}
-          className="group/bar relative mb-1 sm:mb-2 flex items-center w-full"
+          style={{ direction: 'ltr', unicodeBidi: 'isolate' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="video-player-seek-bar group/bar relative mb-1 sm:mb-2 flex items-center w-full h-5 cursor-pointer touch-none"
         >
           <div className="relative h-1.5 sm:h-2 w-full overflow-hidden rounded-full bg-white/25 pointer-events-none">
             <div
@@ -106,44 +119,29 @@ export function VideoPlayerControls({
             className="pointer-events-none absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-x-1/2 rounded-full bg-emerald-400 shadow-md ring-2 ring-white transition-transform group-hover/bar:scale-125"
             style={{ left: `${progressPercent}%` }}
           />
-          <input
-            dir="ltr"
-            style={{ direction: 'ltr' }}
-            type="range"
-            min={0}
-            max={safeDuration}
-            step={0.1}
-            value={Math.min(activeTime, safeDuration)}
-            onPointerDown={() => setIsScrubbing(true)}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onChange={handleChange}
-            aria-label="شريط تقديم وتأخير الفيديو"
-            className="absolute inset-0 -top-2 h-7 w-full cursor-pointer opacity-0 m-0 p-0"
-          />
         </div>
 
-        {/* Responsive Non-Wrapping Row */}
+        {/* Responsive Non-Wrapping Controls Row */}
         <div className="flex items-center justify-between gap-0.5 sm:gap-2 w-full flex-nowrap min-w-0">
           {/* Left Transport */}
           <div className="flex items-center gap-0.5 sm:gap-1.5 shrink min-w-0">
             <button
               type="button" onClick={onTogglePlay}
-              className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition active:scale-95 shadow-sm shrink-0"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition active:scale-95 shadow-sm shrink-0"
               aria-label={isEnded ? 'إعادة التشغيل' : isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
             >
               {isEnded ? <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" /> : isPlaying ? <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current" /> : <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-current ml-0.5" />}
             </button>
             <button
               type="button" onClick={() => onSkip(-10)}
-              className="flex items-center gap-0.5 rounded-lg px-0.5 sm:px-1.5 py-1 text-[9px] sm:text-[11px] font-bold text-white/90 hover:bg-white/15 transition active:scale-95 shrink-0"
+              className="flex items-center gap-0.5 rounded-lg px-0.5 sm:px-1.5 py-1 text-[9px] sm:text-xs font-bold text-white/90 hover:bg-white/15 transition active:scale-95 shrink-0"
               title="إرجاع 10 ثواني"
             >
               <RotateCcw className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" /><span>-10s</span>
             </button>
             <button
               type="button" onClick={() => onSkip(10)}
-              className="flex items-center gap-0.5 rounded-lg px-0.5 sm:px-1.5 py-1 text-[9px] sm:text-[11px] font-bold text-white/90 hover:bg-white/15 transition active:scale-95 shrink-0"
+              className="flex items-center gap-0.5 rounded-lg px-0.5 sm:px-1.5 py-1 text-[9px] sm:text-xs font-bold text-white/90 hover:bg-white/15 transition active:scale-95 shrink-0"
               title="تقديم 10 ثواني"
             >
               <RotateCw className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" /><span>+10s</span>
@@ -154,7 +152,7 @@ export function VideoPlayerControls({
               </button>
               <input
                 dir="ltr"
-                style={{ direction: 'ltr' }}
+                style={{ direction: 'ltr', unicodeBidi: 'isolate' }}
                 type="range"
                 min={0}
                 max={1}
@@ -165,12 +163,12 @@ export function VideoPlayerControls({
                 className="hidden lg:block w-12 xl:w-16 accent-emerald-400 cursor-pointer h-1"
               />
             </div>
-            <div className="font-mono text-[9px] sm:text-[11px] md:text-xs font-bold text-slate-200 whitespace-nowrap shrink-0">
+            <div className="font-mono text-[9px] sm:text-xs font-bold text-slate-200 whitespace-nowrap shrink-0">
               <span className="text-emerald-400">{formatVideoTime(activeTime)}</span><span className="mx-0.5 text-white/40">/</span><span>{formatVideoTime(safeDuration)}</span>
             </div>
           </div>
 
-          {/* Right Controls */}
+          {/* Right Controls: Speed and Quality ONLY visible in Fullscreen or sm+ screens */}
           <div className="relative flex items-center gap-0.5 sm:gap-1.5 shrink-0">
             {/* Speed Selector */}
             <div className={`relative ${isFullscreen ? 'block' : 'hidden sm:block'}`}>
@@ -229,7 +227,7 @@ export function VideoPlayerControls({
             {/* Fullscreen Button */}
             <button
               type="button" onClick={onToggleFullscreen}
-              className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 transition active:scale-95 shrink-0"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 transition active:scale-95 shrink-0"
               aria-label={isFullscreen ? 'تصغير الشاشة' : 'ملء الشاشة'}
             >
               {isFullscreen ? <Minimize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}

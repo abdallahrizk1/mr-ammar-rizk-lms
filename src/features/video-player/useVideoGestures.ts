@@ -26,6 +26,7 @@ export function useVideoGestures({
 
   const handleVideoAreaClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
     const clickX = e.clientX - rect.left;
     const side: 'left' | 'right' = clickX < rect.width / 2 ? 'left' : 'right';
     const now = Date.now();
@@ -36,8 +37,8 @@ export function useVideoGestures({
         clearTimeout(singleTapTimeoutRef.current);
         singleTapTimeoutRef.current = null;
       }
-      lastTapTimeRef.current = now;
-      lastTapSideRef.current = side;
+      lastTapTimeRef.current = 0;
+      lastTapSideRef.current = null;
       handleSkip(side === 'left' ? -10 : 10);
       triggerRipple(side);
     } else {
