@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
 import { normalizeActivationCode } from '@/lib/utils/input-normalizer';
 
+import { createClient } from '@/lib/supabase/client';
+
 interface CenterCodeMethodProps {
   onSuccess: (code: string) => void;
 }
@@ -13,7 +15,7 @@ export function CenterCodeMethod({ onSuccess }: CenterCodeMethodProps) {
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = normalizeActivationCode(code);
     if (!cleanCode || cleanCode.length < 6) {
@@ -23,10 +25,20 @@ export function CenterCodeMethod({ onSuccess }: CenterCodeMethodProps) {
 
     setIsVerifying(true);
     setErrorMsg('');
-    setTimeout(() => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc('redeem_activation_code', { p_raw_code: cleanCode });
+      if (error || !data?.success) {
+        setErrorMsg(data?.message || 'كود التفعيل غير صالح أو تم استخدامه مسبقاً');
+        setIsVerifying(false);
+        return;
+      }
       setIsVerifying(false);
       onSuccess(cleanCode);
-    }, 800);
+    } catch {
+      setErrorMsg('حدث خطأ في الاتصال بالخادم');
+      setIsVerifying(false);
+    }
   };
 
   return (

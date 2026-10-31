@@ -62,8 +62,18 @@ export function LoginForm() {
     setIsSubmitting(true);
     setErrorMsg('');
 
-    setTimeout(() => {
-      if (password === 'wrong-demo') {
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const { phoneToVirtualEmail } = await import('@/lib/utils/input-normalizer');
+      const supabase = createClient();
+      const virtualEmail = phoneToVirtualEmail(cleanPhone);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: virtualEmail,
+        password,
+      });
+
+      if (error) {
         const nextAttempts = failedAttempts + 1;
         setFailedAttempts(nextAttempts);
         if (nextAttempts >= MAX_FAILED_ATTEMPTS) {
@@ -78,15 +88,25 @@ export function LoginForm() {
         return;
       }
 
+      const userRole = data.user?.app_metadata?.role;
+      const fullName = data.user?.user_metadata?.full_name || 'طالب منصة عمار رزق';
       localStorage.setItem('lms_preview_auth_user', JSON.stringify({
-        fullName: 'طالب منصة عمار رزق',
+        fullName,
         phone: cleanPhone,
-        role: 'student',
-        enrolledCourses: ['c-1', 'c-bundle-2027'],
+        role: userRole || 'student',
+        userId: data.user?.id,
       }));
+
       setIsSubmitting(false);
-      router.push('/dashboard');
-    }, 600);
+      if (userRole === 'super_admin' || userRole === 'admin' || userRole === 'assistant') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch {
+      setErrorMsg('حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً');
+      setIsSubmitting(false);
+    }
   };
 
   return (

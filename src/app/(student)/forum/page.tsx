@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { ForumTabId } from '@/features/forum/forum-types';
 import { ForumPostCard } from '@/features/forum/ForumPostCard';
 import { NewQuestionModal } from '@/features/forum/NewQuestionModal';
 import { ForumPostItem } from '@/lib/data/forum-data';
-import { getStoredForumPosts, addStoredForumPost } from '@/lib/utils/student-storage';
+import { createClient } from '@/lib/supabase/client';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 
 const PAGE_SIZE = 10;
@@ -14,49 +14,99 @@ const PAGE_SIZE = 10;
 export default function StudentForumPage() {
   const [activeTab, setActiveTab] = useState<ForumTabId>('private');
   const [currentPage, setCurrentPage] = useState(1);
-  const [posts, setPosts] = useState<ForumPostItem[]>(() => getStoredForumPosts());
+  const [posts, setPosts] = useState<ForumPostItem[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [todayQuestionsCount, setTodayQuestionsCount] = useState(2);
+  const [todayQuestionsCount, setTodayQuestionsCount] = useState(0);
   const [successToast, setSuccessToast] = useState('');
 
   const MAX_DAILY_QUESTIONS = 5;
   const remainingToday = Math.max(0, MAX_DAILY_QUESTIONS - todayQuestionsCount);
 
-  const filteredPosts = posts.filter((p) => {
-    if (activeTab === 'private') return p.isMine;
-    if (activeTab === 'public') return p.isPublicApproved;
-    if (activeTab === 'pending') return p.status === 'pending';
+  const fetchForumQuestions = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+
+      const { data } = await supabase
+        .from('forum_questions')
+        .select('id, student_id, question_text, question_image_url, status, is_public, reply_text, reply_image_url, reply_voice_url, replied_at, created_at, profiles:student_id(full_name, grade_level)')
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped: ForumPostItem[] = data.map((q: any) => {
+          const isMine = q.student_id === user?.id;
+          return {
+            id: q.id,
+            authorName: isMine ? `${q.profiles?.full_name || 'أنا'} (أنا)` : (q.profiles?.full_name || 'طالب المنصة'),
+            authorGrade: `الصف ${q.profiles?.grade_level || '3'} الثانوي`,
+            isMine,
+            timeAgo: 'مؤخراً',
+            createdAt: q.created_at ? q.created_at.split('T')[0] : 'اليوم',
+            status: q.status,
+            questionTitle: q.question_text.slice(0, 60),
+            questionText: q.question_text,
+            questionImageUrl: q.question_image_url,
+            isPublicApproved: !!q.is_public,
+            teacherReply: q.reply_text ? {
+              teacherName: 'مستر عمار رزق',
+              teacherRole: 'مدرس الأحياء للثانوية العامة',
+              timeAgo: 'الآن',
+              replyText: q.reply_text,
+              replyImageUrl: q.reply_image_url,
+              voiceNote: q.reply_voice_url ? { audioUrl: q.reply_voice_url, durationSeconds: 60 } : undefined,
+            } : undefined,
+          };
+        });
+        setPosts(mapped);
+        if (user) {
+          const userToday = mapped.filter((p) => p.isMine).length;
+          setTodayQuestionsCount(userToday);
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchForumQuestions();
+  }, []);
+
+  const handleAddNewQuestion = async (data: { title: string; text: string; imageBlobUrl?: string }) => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from('forum_questions').insert({
+        student_id: user.id,
+        question_text: data.text.trim() || data.title.trim(),
+        question_image_url: data.imageBlobUrl || null,
+        grade_level: '3',
+        is_public: false,
+        status: 'pending',
+      });
+
+      if (!error) {
+        await fetchForumQuestions();
+        setIsModalOpen(false);
+        setCurrentPage(1);
+        setSuccessToast('تم إرسال سؤالك العلمي بنجاح، وسيقوم مستر عمار بالرد قريباً ✅');
+        setTimeout(() => setSuccessToast(''), 4500);
+      }
+    } catch {}
+  };
+
+  const filteredPosts = posts.filter((post) => {
+    if (activeTab === 'private') return post.isMine;
+    if (activeTab === 'public') return post.isPublicApproved;
+    if (activeTab === 'pending') return post.status === 'pending';
     return true;
   });
 
-  const paginatedPosts = filteredPosts.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-
-  const handleAddNewQuestion = (data: { title: string; text: string; imageBlobUrl?: string }) => {
-    const newPost: ForumPostItem = {
-      id: `post-${Date.now()}`,
-      authorName: 'أحمد محمد العوضي (أنا)',
-      authorGrade: 'الصف الثالث الثانوي',
-      isMine: true,
-      timeAgo: 'الآن',
-      createdAt: 'اليوم',
-      status: 'pending',
-      questionTitle: data.title,
-      questionText: data.text,
-      questionImageUrl: data.imageBlobUrl,
-      isPublicApproved: false,
-    };
-
-    addStoredForumPost(newPost);
-    setPosts((prev) => [newPost, ...prev]);
-    setTodayQuestionsCount((c) => c + 1);
-    setIsModalOpen(false);
-    setCurrentPage(1);
-    setSuccessToast('تم إرسال سؤالك العلمي بنجاح، وسيقوم مستر عمار بالرد قريباً ✅');
-    setTimeout(() => setSuccessToast(''), 4500);
-  };
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const paginatedPosts = filteredPosts.slice(startIndex, startIndex + PAGE_SIZE);
 
   const tabsConfig = [
     {

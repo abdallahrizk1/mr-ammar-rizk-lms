@@ -1,94 +1,59 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ChevronLeft, Calendar, Clock, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Calendar, BookOpen, Clock } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-interface CourseItem {
+interface DynamicCourse {
   id: string;
   title: string;
-  image: string;
-  category: 'grade1' | 'grade2' | 'grade3' | 'free';
-  isFree?: boolean;
-  price?: string;
-  date: string;
-  note: string;
+  grade_level: string;
+  price: number;
+  banner_image_url: string | null;
+  created_at: string;
+  description: string | null;
 }
-
-const COURSES: CourseItem[] = [
-  {
-    id: 'c1',
-    title: 'كورس الامتحان التأسيسي في الأحياء',
-    image: '/images/teacher-circle.png',
-    category: 'free',
-    isFree: true,
-    date: 'الأحد، 2 أغسطس 2026',
-    note: 'الامتحان متاح لمدة 48 ساعة مجاناً',
-  },
-  {
-    id: 'c2',
-    title: 'كورس الباب الأول والثاني (3 شهور) - عام',
-    image: '/images/teacher-circle.png',
-    category: 'grade3',
-    price: '350 جنيه',
-    date: 'الأحد، 26 يوليو 2026',
-    note: 'بداية نزول المحتوى يوم 8/8',
-  },
-  {
-    id: 'c3',
-    title: 'كورس الباب الأول والثاني - أزهر',
-    image: '/images/teacher-circle.png',
-    category: 'grade3',
-    price: '350 جنيه',
-    date: 'الأحد، 26 يوليو 2026',
-    note: 'بداية نزول المحتوى يوم 8/8',
-  },
-  {
-    id: 'c4',
-    title: 'أساسيات علم الأحياء والوراثة - الصف الأول',
-    image: '/images/teacher-circle.png',
-    category: 'grade1',
-    price: '250 جنيه',
-    date: 'السبت، 1 أغسطس 2026',
-    note: 'شرح المنهج وحل تدريبات تفاعلية',
-  },
-  {
-    id: 'c5',
-    title: 'كورس التغذية والنقل في الكائنات - الصف الثاني',
-    image: '/images/teacher-circle.png',
-    category: 'grade2',
-    price: '280 جنيه',
-    date: 'الإثنين، 3 أغسطس 2026',
-    note: 'رسومات ثلاثية الأبعاد واختبارات دورية',
-  },
-  {
-    id: 'c6',
-    title: 'بنك أسئلة الوزارة ونماذج الامتحانات - مجاني',
-    image: '/images/teacher-circle.png',
-    category: 'free',
-    isFree: true,
-    date: 'متاح طوال العام',
-    note: 'أكثر من 500 سؤال تدريبي مجاني',
-  },
-];
 
 const FILTERS = [
   { id: 'all', label: 'الكل' },
-  { id: 'grade1', label: 'الصف الأول' },
-  { id: 'grade2', label: 'الصف الثاني' },
-  { id: 'grade3', label: 'الصف الثالث' },
+  { id: '1', label: 'الصف الأول' },
+  { id: '2', label: 'الصف الثاني' },
+  { id: '3', label: 'الصف الثالث' },
   { id: 'free', label: 'مجاني' },
 ];
 
 export function AvailableCoursesSection() {
+  const [courses, setCourses] = useState<DynamicCourse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const filteredCourses = activeFilter === 'all'
-    ? COURSES
-    : activeFilter === 'free'
-    ? COURSES.filter((c) => c.isFree)
-    : COURSES.filter((c) => c.category === activeFilter);
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setIsLoading(true);
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('courses')
+          .select('id, title, grade_level, price, banner_image_url, created_at, description')
+          .eq('is_published', true)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+
+        if (data) setCourses(data);
+      } catch {}
+      setIsLoading(false);
+    };
+
+    fetchCourses();
+  }, []);
+
+  const filteredCourses = courses.filter((c) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'free') return c.price === 0;
+    return c.grade_level === activeFilter;
+  });
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -105,7 +70,6 @@ export function AvailableCoursesSection() {
   return (
     <section className="py-4 sm:py-5 lg:py-6 bg-slate-50 dark:bg-[#071719] transition-colors" dir="rtl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 mb-3 sm:mb-4">
           <div>
@@ -164,7 +128,9 @@ export function AvailableCoursesSection() {
           ref={scrollContainerRef}
           className="flex gap-2.5 sm:gap-3.5 overflow-x-auto scroll-smooth snap-x pb-2.5 pt-0.5 no-scrollbar"
         >
-          {filteredCourses.length > 0 ? (
+          {isLoading ? (
+            <div className="w-full py-8 text-center text-xs text-slate-400">جارٍ جلب الكورسات...</div>
+          ) : filteredCourses.length > 0 ? (
             filteredCourses.map((course) => (
               <div
                 key={course.id}
@@ -172,8 +138,9 @@ export function AvailableCoursesSection() {
               >
                 <div>
                   <div className="relative h-24 sm:h-28 w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-[#071719] mb-2 flex items-center justify-center border border-slate-200/50 dark:border-teal-500/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={course.image}
+                      src={course.banner_image_url || '/images/teacher-circle.png'}
                       alt={course.title}
                       className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
                     />
@@ -184,13 +151,13 @@ export function AvailableCoursesSection() {
                   </h3>
 
                   <div className="mt-1.5">
-                    {course.isFree ? (
+                    {course.price === 0 ? (
                       <span className="inline-block rounded-md border border-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
                         كورس مجاني
                       </span>
                     ) : (
                       <span className="text-xs sm:text-sm font-black text-bio-teal dark:text-emerald-400">
-                        {course.price}
+                        {course.price} ج.م
                       </span>
                     )}
                   </div>
@@ -198,18 +165,17 @@ export function AvailableCoursesSection() {
                   <div className="mt-2 space-y-1 border-t border-slate-100 dark:border-teal-500/15 pt-1.5 text-[10px] sm:text-[11px] text-slate-500 dark:text-teal-200/60">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-3 w-3 text-slate-400 dark:text-teal-300/60" />
-                      <span>{course.date}</span>
+                      <span>الصف {course.grade_level} الثانوي</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-3 w-3 text-slate-400 dark:text-teal-300/60" />
-                      <span>{course.note}</span>
-                    </div>
+                    {course.description && (
+                      <p className="line-clamp-1 text-[10px] text-slate-400">{course.description}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="mt-2.5">
                   <Link
-                    href="/register"
+                    href={`/courses/${course.id}`}
                     prefetch={false}
                     className="flex w-full items-center justify-center rounded-xl border border-bio-teal py-1 text-xs font-bold text-bio-teal transition hover:bg-bio-teal hover:text-white dark:border-emerald-500/50 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white active:scale-95"
                   >
@@ -219,12 +185,11 @@ export function AvailableCoursesSection() {
               </div>
             ))
           ) : (
-            <div className="w-full py-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              لا توجد كورسات متاحة حالياً في هذا التصنيف.
+            <div className="w-full py-10 text-center text-xs sm:text-sm font-bold text-slate-500 dark:text-teal-200/70 border border-dashed rounded-2xl p-6">
+              سيتم نشر الكورسات قريباً 🧬
             </div>
           )}
         </div>
-
       </div>
     </section>
   );

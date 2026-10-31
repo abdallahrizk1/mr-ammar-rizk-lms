@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { ChevronRight, CreditCard, KeyRound, Smartphone } from 'lucide-react';
 import { InvoiceSummaryStep } from '@/features/payments/InvoiceSummaryStep';
@@ -8,8 +8,8 @@ import { CenterCodeMethod } from '@/features/payments/CenterCodeMethod';
 import { VodafoneInstapayMethod } from '@/features/payments/VodafoneInstapayMethod';
 import { InstantActivationCelebration } from '@/features/payments/InstantActivationCelebration';
 import { PaymentStep, PaymentMethodType } from '@/features/payments/payments-types';
-import { SAMPLE_COURSES } from '@/lib/data/courses-data';
 import { CourseItem } from '@/lib/data/courses-types';
+import { createClient } from '@/lib/supabase/client';
 import { addTemporaryEnrolledCourse } from '@/lib/utils/student-storage';
 
 interface PageProps {
@@ -20,12 +20,54 @@ export default function CourseSubscribePage({ params }: PageProps) {
   const resolvedParams = params && typeof (params as any)?.then === 'function' ? use(params as any) : (params as any) || {};
   const { courseId } = resolvedParams;
 
-  const course: CourseItem =
-    SAMPLE_COURSES.find((c) => c.id === courseId) || SAMPLE_COURSES[0];
+  const [course, setCourse] = useState<CourseItem>({
+    id: courseId || 'course-1',
+    title: 'كورس الأحياء',
+    tagline: 'منهج الأحياء 2027',
+    description: '',
+    grade: 'الصف الثالث الثانوي',
+    price: 350,
+    priceFormatted: '350 ج.م',
+    isComprehensive: false,
+    isEnrolled: false,
+    isTemporary: false,
+    progress: 0,
+    bannerImage: '/images/teacher-circle.png',
+    lecturesCount: 12,
+    modules: [],
+  });
 
   const [currentStep, setCurrentStep] = useState<PaymentStep>(1);
   const [method, setMethod] = useState<PaymentMethodType>('center_code');
   const [isCenterCodeActivation, setIsCenterCodeActivation] = useState(false);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('courses').select('*').eq('id', courseId).single();
+        if (data) {
+          setCourse({
+            id: data.id,
+            title: data.title,
+            tagline: data.description || 'منهج الأحياء 2027',
+            description: data.description || '',
+            grade: `الصف ${data.grade_level} الثانوي`,
+            price: data.price,
+            priceFormatted: data.price === 0 ? 'مجاني' : `${data.price} ج.م`,
+            isComprehensive: !!data.is_bundle,
+            isEnrolled: false,
+            isTemporary: false,
+            progress: 0,
+            bannerImage: data.thumbnail_url || '/images/teacher-circle.png',
+            lecturesCount: 12,
+            modules: [],
+          });
+        }
+      } catch {}
+    };
+    if (courseId) fetchCourse();
+  }, [courseId]);
 
   const handleActivationComplete = (isCode: boolean) => {
     setIsCenterCodeActivation(isCode);
@@ -142,6 +184,8 @@ export default function CourseSubscribePage({ params }: PageProps) {
             />
           ) : (
             <VodafoneInstapayMethod
+              courseId={course.id}
+              coursePrice={course.price}
               onSuccess={() => handleActivationComplete(false)}
             />
           )}

@@ -1,33 +1,68 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, RefreshCw } from 'lucide-react';
 import { CoursesFilterType } from '@/features/courses/courses-types';
 import { CourseCard } from '@/features/courses/CourseCard';
 import { CourseItem } from '@/lib/data/courses-types';
-import { SAMPLE_COURSES } from '@/lib/data/courses-data';
+import { createClient } from '@/lib/supabase/client';
 import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
 export default function StudentCoursesPage() {
   const [filter, setFilter] = useState<CoursesFilterType>('my_courses');
-  const [coursesList, setCoursesList] = useState<CourseItem[]>(SAMPLE_COURSES);
+  const [coursesList, setCoursesList] = useState<CourseItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchCoursesFromSupabase = async () => {
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+      const [coursesRes, enrollmentsRes] = await Promise.all([
+        supabase
+          .from('courses')
+          .select('*')
+          .eq('is_published', true)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false }),
+        supabase.from('course_enrollments').select('course_id, status').eq('status', 'active'),
+      ]);
+
+      const stored = getStoredEnrolledCourses();
+      const enrolledSet = new Set<string>();
+
+      if (enrollmentsRes.data) {
+        enrollmentsRes.data.forEach((e) => enrolledSet.add(e.course_id));
+      }
+      stored.forEach((s) => enrolledSet.add(s.id));
+
+      if (coursesRes.data && coursesRes.data.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped: CourseItem[] = coursesRes.data.map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          tagline: c.description || 'منهج الأحياء للثانوية العامة 2027',
+          description: c.description || '',
+          grade: `الصف ${c.grade_level} الثانوي`,
+          price: c.price,
+          priceFormatted: c.price === 0 ? 'مجاني' : `${c.price} ج.م`,
+          isComprehensive: !!c.is_bundle,
+          isEnrolled: enrolledSet.has(c.id),
+          isTemporary: false,
+          progress: 0,
+          bannerImage: c.banner_image_url || '/images/teacher-circle.png',
+          lecturesCount: 12,
+          modules: [],
+        }));
+        setCoursesList(mapped);
+      } else {
+        setCoursesList([]);
+      }
+    } catch {}
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    // Sync with student storage for any dynamically activated courses
-    const stored = getStoredEnrolledCourses();
-    setCoursesList((prev) =>
-      prev.map((c) => {
-        const found = stored.find((s) => s.id === c.id);
-        if (found) {
-          return {
-            ...c,
-            isEnrolled: true,
-            isTemporary: found.status === 'temporary',
-          };
-        }
-        return c;
-      })
-    );
+    fetchCoursesFromSupabase();
   }, []);
 
   // Filter 1: كورساتي (Enrolled courses; if enrolled in comprehensive, show 1 unified card without repeating chapters)
@@ -39,8 +74,7 @@ export default function StudentCoursesPage() {
       const isEnrolledInComprehensive = coursesList.some(
         (c) => c.isComprehensive && c.isEnrolled
       );
-      // If student is enrolled in comprehensive, hide individual chapter courses in 'my_courses'
-      if (isEnrolledInComprehensive && !course.isComprehensive && course.id.startsWith('c-chapter-')) {
+      if (isEnrolledInComprehensive && !course.isComprehensive) {
         return false;
       }
       return true;
@@ -50,7 +84,6 @@ export default function StudentCoursesPage() {
       return !!course.isSuggested;
     }
 
-    // 'all'
     return true;
   });
 
@@ -94,17 +127,19 @@ export default function StudentCoursesPage() {
       </div>
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredCourses.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-xs font-bold text-slate-400 rounded-2xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/20 p-8">
-            لا توجد كورسات في هذا القسم حالياً
-          </div>
-        ) : (
-          filteredCourses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))
-        )}
-      </div>
+      {isLoading ? (
+        <div className="py-12 text-center text-xs font-bold text-slate-400">جارٍ تحميل الكورسات من قاعدة البيانات...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filteredCourses.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-xs font-bold text-slate-400 rounded-2xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/20 p-8">
+              لا توجد كورسات في هذا القسم حالياً
+            </div>
+          ) : (
+            filteredCourses.map((c) => <CourseCard key={c.id} course={c} />)
+          )}
+        </div>
+      )}
     </div>
   );
 }

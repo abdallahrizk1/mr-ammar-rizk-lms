@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Check, Upload, Send, AlertCircle, FileCheck } from 'lucide-react';
 import { normalizePhoneNumber } from '@/lib/utils/input-normalizer';
 import { compressImageToWebp } from '@/lib/utils/image-compression';
+import { createClient } from '@/lib/supabase/client';
 
 interface VodafoneInstapayMethodProps {
+  courseId?: string;
+  coursePrice?: number;
   onSuccess: (data: { senderPhone: string; transactionRef: string; fileName: string }) => void;
 }
 
-const WALLET_NUMBER = '01012345678';
-const INSTAPAY_HANDLE = 'ammar.rizk@instapay';
+export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: VodafoneInstapayMethodProps) {
+  const [walletNumber, setWalletNumber] = useState('01000000000');
+  const [instaHandle, setInstaHandle] = useState('ammar-rizk@instapay');
 
-export function VodafoneInstapayMethod({ onSuccess }: VodafoneInstapayMethodProps) {
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedInsta, setCopiedInsta] = useState(false);
 
@@ -21,6 +24,24 @@ export function VodafoneInstapayMethod({ onSuccess }: VodafoneInstapayMethodProp
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('platform_settings').select('*').limit(1).single();
+        if (data) {
+          if (Array.isArray(data.vodafone_cash_numbers) && data.vodafone_cash_numbers.length > 0) {
+            setWalletNumber(data.vodafone_cash_numbers[0]);
+          }
+          if (data.instapay_address) {
+            setInstaHandle(data.instapay_address);
+          }
+        }
+      } catch {}
+    };
+    fetchSettings();
+  }, []);
 
   const copyToClipboard = (text: string, type: 'wallet' | 'insta') => {
     navigator.clipboard.writeText(text);
@@ -49,7 +70,7 @@ export function VodafoneInstapayMethod({ onSuccess }: VodafoneInstapayMethodProp
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = normalizePhoneNumber(senderPhone);
     if (!cleanPhone || cleanPhone.length < 10) {
@@ -64,6 +85,20 @@ export function VodafoneInstapayMethod({ onSuccess }: VodafoneInstapayMethodProp
       setErrorMsg('يرجى رفع صورة إيصال التحويل لتأكيد العملية');
       return;
     }
+
+    try {
+      const supabase = createClient();
+      if (courseId) {
+        await supabase.from('payment_receipts').insert({
+          course_id: courseId,
+          amount: coursePrice || 350,
+          sender_phone: cleanPhone,
+          reference_number: transactionRef.trim(),
+          receipt_image_r2_path: `/receipts/${Date.now()}-${receiptFile.name}`,
+          file_size_bytes: Math.min(receiptFile.size, 512000),
+        });
+      }
+    } catch {}
 
     onSuccess({
       senderPhone: cleanPhone,
@@ -80,12 +115,12 @@ export function VodafoneInstapayMethod({ onSuccess }: VodafoneInstapayMethodProp
           <div>
             <span className="text-[10px] text-slate-400 block">رقم فودافون كاش المعتمد</span>
             <span className="font-mono text-sm sm:text-base font-black text-slate-900 dark:text-emerald-400" dir="ltr">
-              {WALLET_NUMBER}
+              {walletNumber}
             </span>
           </div>
           <button
             type="button"
-            onClick={() => copyToClipboard(WALLET_NUMBER, 'wallet')}
+            onClick={() => copyToClipboard(walletNumber, 'wallet')}
             className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition self-start sm:self-auto"
           >
             {copiedWallet ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
@@ -97,12 +132,12 @@ export function VodafoneInstapayMethod({ onSuccess }: VodafoneInstapayMethodProp
           <div>
             <span className="text-[10px] text-slate-400 block">عنوان الدفع إنستا باي (InstaPay IPA)</span>
             <span className="font-mono text-xs sm:text-sm font-black text-slate-900 dark:text-emerald-400" dir="ltr">
-              {INSTAPAY_HANDLE}
+              {instaHandle}
             </span>
           </div>
           <button
             type="button"
-            onClick={() => copyToClipboard(INSTAPAY_HANDLE, 'insta')}
+            onClick={() => copyToClipboard(instaHandle, 'insta')}
             className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition self-start sm:self-auto"
           >
             {copiedInsta ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}

@@ -2,9 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, User, School, Lock } from 'lucide-react';
-import { normalizeDigits, normalizePhoneNumber, phoneToVirtualEmail, sanitizePhoneInput } from '@/lib/utils/input-normalizer';
+import { ArrowLeft, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { normalizeDigits, normalizePhoneNumber, sanitizePhoneInput } from '@/lib/utils/input-normalizer';
+import { createClient } from '@/lib/supabase/client';
+import { registerStudentAction } from '@/app/actions/auth-actions';
 import { HIGH_SCHOOL_GRADES, EDUCATION_TYPES, EGYPTIAN_GOVERNORATES, type FullRegisterInput } from './types';
+import { RegisterSuccessCard } from './RegisterSuccessCard';
+import { RegisterStepIndicator } from './RegisterStepIndicator';
 
 export function MultiStepRegisterForm() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -71,37 +75,47 @@ export function MultiStepRegisterForm() {
     }
 
     setIsSubmitting(true);
-    const virtualEmail = phoneToVirtualEmail(formData.phone);
+    setErrors({});
+    const res = await registerStudentAction({
+      fullName: formData.fullName,
+      phone: formData.phone,
+      parentPhone: formData.parentPhone,
+      gradeId: formData.gradeId,
+      educationType: formData.educationType,
+      governorate: formData.governorate,
+      gender: formData.gender,
+      password: formData.password,
+    });
 
-    setTimeout(() => {
-      localStorage.setItem('lms_preview_auth_user', JSON.stringify({
-        fullName: formData.fullName,
-        phone: formData.phone,
-        virtualEmail,
-        gradeId: formData.gradeId,
-        reviewStatus: 'pending_review',
-      }));
+    if (!res.success) {
+      setErrors({ submit: res.error || 'حدث خطأ أثناء إنشاء الحساب' });
       setIsSubmitting(false);
-      setIsSuccess(true);
-    }, 700);
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.auth.signInWithPassword({
+        email: res.virtualEmail!,
+        password: formData.password,
+      });
+    } catch {
+      // Ignored if session handled by action
+    }
+
+    localStorage.setItem('lms_preview_auth_user', JSON.stringify({
+      fullName: formData.fullName,
+      phone: formData.phone,
+      virtualEmail: res.virtualEmail,
+      gradeId: formData.gradeId,
+      reviewStatus: 'pending_review',
+    }));
+    setIsSubmitting(false);
+    setIsSuccess(true);
   };
 
   if (isSuccess) {
-    return (
-      <div dir="rtl" className="mx-auto w-full max-w-md rounded-2xl border border-emerald-500/30 bg-white p-4 sm:p-5 text-center text-slate-900 shadow-xl dark:bg-[#0D2628] dark:border-emerald-500/30 dark:text-white transition-colors">
-        <div className="mx-auto mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="h-7 w-7 animate-bounce" />
-        </div>
-        <h2 className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">تم إنشاء حسابك بنجاح! 🎉</h2>
-        <div className="my-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-          ⚡ <strong>تنبيه مراجعة الحساب:</strong> تم فتح حسابك للدخول مبدئياً فوراً. سيتم مراجعة والتأكد من بياناتك وبيانات ولي الأمر خلال 24 إلى 48 ساعة.
-        </div>
-        <p className="text-xs text-slate-600 dark:text-slate-300">أهلاً بك يا <strong>{formData.fullName}</strong> في رحلة التفوق مع مستر عمار رزق!</p>
-        <Link prefetch={false} href="/dashboard" className="mt-3.5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95">
-          الانتقال إلى لوحة الطالب الرئيسية 🚀
-        </Link>
-      </div>
-    );
+    return <RegisterSuccessCard fullName={formData.fullName} />;
   }
 
   const inputClass = "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400 dark:focus:border-emerald-400 dark:focus:ring-1 dark:focus:ring-emerald-400/40";
@@ -113,20 +127,14 @@ export function MultiStepRegisterForm() {
         <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">سجل حسابك في منصة مستر عمار رزق للأحياء</p>
       </div>
 
-      <div className="mb-3.5 flex items-center justify-between gap-1 border-b border-slate-200 dark:border-teal-500/20 pb-2.5">
-        {[
-          { num: 1, label: 'البيانات الشخصية', icon: User },
-          { num: 2, label: 'البيانات الدراسية', icon: School },
-          { num: 3, label: 'تأمين الحساب', icon: Lock },
-        ].map((item) => (
-          <div key={item.num} className={`flex min-w-0 items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold ${step >= item.num ? 'text-bio-teal dark:text-emerald-300 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
-            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${step === item.num ? 'bg-bio-teal text-white dark:bg-emerald-500 dark:text-slate-950 font-black shadow-sm' : step > item.num ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-[#071719] dark:border dark:border-teal-500/20 text-slate-500'}`}>
-              {item.num}
-            </span>
-            <span className="truncate">{item.label}</span>
-          </div>
-        ))}
-      </div>
+      {errors.submit && (
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{errors.submit}</span>
+        </div>
+      )}
+
+      <RegisterStepIndicator step={step} />
 
       <form onSubmit={handleSubmit} className="space-y-3" noValidate>
         {step === 1 && (

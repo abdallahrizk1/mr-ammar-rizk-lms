@@ -18,104 +18,84 @@ import { HomeworkResultsTab } from '@/features/account/HomeworkResultsTab';
 import { WatchHistoryTab } from '@/features/account/WatchHistoryTab';
 import { MistakesBankTab } from '@/features/account/MistakesBankTab';
 import { MobileAccountTabs } from '@/features/account/MobileAccountTabs';
-import {
-  INITIAL_STUDENT_PROFILE,
-  INITIAL_STUDENT_STATS,
-  INITIAL_INVOICES,
-  INITIAL_LOGIN_SESSIONS,
+import type {
   StudentProfile,
+  StudentStats,
+  EnrolledCourseItem,
+  InvoiceItem,
+  LoginSessionItem,
 } from '@/lib/data/student-profile-data';
-import { StudentMistakeItem } from '@/lib/data/exam-types';
-import {
-  SAMPLE_QUIZ_RESULTS,
-  SAMPLE_HOMEWORK_RESULTS,
-  SAMPLE_EXAM_QUESTIONS,
-} from '@/lib/data/exam-data';
-import {
-  getStoredEnrolledCourses,
-  getStoredMistakes,
-  getLogoutStats,
-  getStoredWatchHistory,
-  getStoredExamSubmissions,
-} from '@/lib/utils/student-storage';
-import { ExamResultSummary, WatchHistoryItem } from '@/lib/data/exam-types';
+import type { StudentMistakeItem, ExamResultSummary, WatchHistoryItem } from '@/lib/data/exam-types';
+import { DEFAULT_PROFILE, DEFAULT_STATS } from '@/features/account/account-mappers';
+import { loadStudentAccountData, deleteStudentMistakes } from '@/features/account/account-data-loader';
 
 export default function StudentAccountPage() {
   const [activeTab, setActiveTab] = useState<AccountTabId>('profile');
-  const [profile, setProfile] = useState<StudentProfile>(INITIAL_STUDENT_PROFILE);
-  const [enrolledCourses, setEnrolledCourses] = useState(() => getStoredEnrolledCourses());
-  const [mistakes, setMistakes] = useState<StudentMistakeItem[]>(() => getStoredMistakes());
-  const [logoutStats, setLogoutStats] = useState(() => getLogoutStats());
-  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>(() => getStoredWatchHistory());
-  const [quizResults, setQuizResults] = useState<ExamResultSummary[]>(SAMPLE_QUIZ_RESULTS);
-  const [homeworkResults, setHomeworkResults] = useState<ExamResultSummary[]>(SAMPLE_HOMEWORK_RESULTS);
+  const [profile, setProfile] = useState<StudentProfile>(DEFAULT_PROFILE);
+  const [stats, setStats] = useState<StudentStats>(DEFAULT_STATS);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourseItem[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [sessions, setSessions] = useState<LoginSessionItem[]>([]);
+  const [logoutsToday, setLogoutsToday] = useState(0);
+  const [logoutsThisWeek, setLogoutsThisWeek] = useState(0);
+  const [mistakes, setMistakes] = useState<StudentMistakeItem[]>([]);
+  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([]);
+  const [quizResults, setQuizResults] = useState<ExamResultSummary[]>([]);
+  const [homeworkResults, setHomeworkResults] = useState<ExamResultSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setEnrolledCourses(getStoredEnrolledCourses());
-    setMistakes(getStoredMistakes());
-    setLogoutStats(getLogoutStats());
-    setWatchHistory(getStoredWatchHistory());
-
-    const submissions = getStoredExamSubmissions();
-    const dynamicQuizzes: ExamResultSummary[] = [];
-    const dynamicHomework: ExamResultSummary[] = [];
-
-    Object.values(submissions).forEach((sub) => {
-      const summary: ExamResultSummary = {
-        id: sub.examId,
-        examName: sub.examTitle,
-        totalQuestions: sub.total,
-        score: sub.score,
-        percentage: sub.percentage,
-        solvedCount: sub.total,
-        correctCount: sub.score,
-        startTime: 'اليوم',
-        endTime: sub.submittedAt,
-        questions: SAMPLE_EXAM_QUESTIONS,
-        studentAnswers: {},
-      };
-      if (sub.isHomework) {
-        dynamicHomework.push(summary);
-      } else {
-        dynamicQuizzes.push(summary);
-      }
-    });
-
-    if (dynamicQuizzes.length > 0) {
-      setQuizResults([...dynamicQuizzes, ...SAMPLE_QUIZ_RESULTS]);
-    }
-    if (dynamicHomework.length > 0) {
-      setHomeworkResults([...dynamicHomework, ...SAMPLE_HOMEWORK_RESULTS]);
-    }
-
-    const rawAuth = localStorage.getItem('lms_preview_auth_user');
-    if (rawAuth) {
+    let isMounted = true;
+    async function loadData() {
       try {
-        const parsed = JSON.parse(rawAuth);
-        setProfile((prev) => ({
-          ...prev,
-          name: parsed.fullName || prev.name,
-          phone: parsed.phone || prev.phone,
-          parentPhone: parsed.parentPhone || prev.parentPhone,
-          governorate: parsed.governorate || prev.governorate,
-          grade: parsed.grade || prev.grade,
-        }));
+        const bundle = await loadStudentAccountData();
+        if (isMounted) {
+          setProfile(bundle.profile);
+          setStats(bundle.stats);
+          setEnrolledCourses(bundle.enrolledCourses);
+          setInvoices(bundle.invoices);
+          setSessions(bundle.sessions);
+          setLogoutsToday(bundle.logoutsToday);
+          setLogoutsThisWeek(bundle.logoutsThisWeek);
+          setMistakes(bundle.mistakes);
+          setWatchHistory(bundle.watchHistory);
+          setQuizResults(bundle.quizResults);
+          setHomeworkResults(bundle.homeworkResults);
+        }
+      } catch {
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleMistakesUpdated = async (updated: StudentMistakeItem[]) => {
+    const remainingIds = new Set(updated.map((m) => m.id));
+    const removedIds = mistakes.filter((m) => !remainingIds.has(m.id)).map((m) => m.id);
+    setMistakes(updated);
+    if (removedIds.length > 0) {
+      try {
+        await deleteStudentMistakes(removedIds);
       } catch {}
     }
-  }, []);
+  };
 
   const tabsConfig = [
     { id: 'profile', label: 'الملف الشخصي والاشتراكات', icon: User },
     { id: 'security', label: 'الأمان وتاريخ الدخول', icon: Shield },
-    { id: 'quizzes', label: 'نتائج الامتحانات', icon: Award },
-    { id: 'homework', label: 'نتائج الواجب', icon: BookOpen },
-    { id: 'watch_history', label: 'مشاهدات الفيديوهات', icon: Video },
+    { id: 'quizzes', label: 'نتائج الامتحانات', icon: Award, badge: quizResults.length },
+    { id: 'homework', label: 'نتائج الواجب', icon: BookOpen, badge: homeworkResults.length },
+    { id: 'watch_history', label: 'مشاهدات الفيديوهات', icon: Video, badge: watchHistory.length },
     { id: 'mistakes', label: 'غلطاتي', icon: AlertCircle, badge: mistakes.length },
   ];
 
   return (
     <div className="space-y-3 sm:space-y-4" dir="rtl">
-      {/* Fixed top profile card */}
+      {/* Top Profile Card */}
       <StudentProfileCard profile={profile} />
 
       {/* Mobile Vertical Cards Tabs (< md) */}
@@ -159,40 +139,47 @@ export default function StudentAccountPage() {
         </div>
       </div>
 
-      {/* 6 Tabs Body */}
-      {activeTab === 'profile' && (
-        <ProfileAndBillingTab
-          stats={INITIAL_STUDENT_STATS}
-          enrolledCourses={enrolledCourses}
-          invoices={INITIAL_INVOICES}
-        />
-      )}
+      {isLoading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-xs font-bold text-slate-400 dark:border-teal-500/20 dark:bg-[#091D20]">
+          جاري تحميل بيانات حسابك التعليمي من المنصة...
+        </div>
+      ) : (
+        <>
+          {activeTab === 'profile' && (
+            <ProfileAndBillingTab
+              stats={stats}
+              enrolledCourses={enrolledCourses}
+              invoices={invoices}
+            />
+          )}
 
-      {activeTab === 'security' && (
-        <SecurityAndSessionsTab
-          sessions={INITIAL_LOGIN_SESSIONS}
-          logoutsToday={logoutStats.today}
-          logoutsThisWeek={logoutStats.thisWeek}
-        />
-      )}
+          {activeTab === 'security' && (
+            <SecurityAndSessionsTab
+              sessions={sessions}
+              logoutsToday={logoutsToday}
+              logoutsThisWeek={logoutsThisWeek}
+            />
+          )}
 
-      {activeTab === 'quizzes' && (
-        <QuizResultsTab quizResults={quizResults} />
-      )}
+          {activeTab === 'quizzes' && (
+            <QuizResultsTab quizResults={quizResults} />
+          )}
 
-      {activeTab === 'homework' && (
-        <HomeworkResultsTab homeworkResults={homeworkResults} />
-      )}
+          {activeTab === 'homework' && (
+            <HomeworkResultsTab homeworkResults={homeworkResults} />
+          )}
 
-      {activeTab === 'watch_history' && (
-        <WatchHistoryTab history={watchHistory} />
-      )}
+          {activeTab === 'watch_history' && (
+            <WatchHistoryTab history={watchHistory} />
+          )}
 
-      {activeTab === 'mistakes' && (
-        <MistakesBankTab
-          mistakes={mistakes}
-          onMistakesUpdated={(updated) => setMistakes(updated)}
-        />
+          {activeTab === 'mistakes' && (
+            <MistakesBankTab
+              mistakes={mistakes}
+              onMistakesUpdated={handleMistakesUpdated}
+            />
+          )}
+        </>
       )}
     </div>
   );

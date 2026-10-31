@@ -2,18 +2,16 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ChevronRight, ChevronLeft, CheckSquare, AlertTriangle } from 'lucide-react';
+import { ArrowRight, ChevronRight, ChevronLeft, CheckSquare, AlertTriangle, AlertCircle } from 'lucide-react';
 import { ExamTimer } from '@/features/exams/ExamTimer';
 import { QuestionCard } from '@/features/exams/QuestionCard';
 import { QuestionNavigator } from '@/features/exams/QuestionNavigator';
 import { ExamResultModal } from '@/features/exams/ExamResultModal';
+import { UnansweredWarningModal } from '@/features/exams/UnansweredWarningModal';
 import { ExamSubmissionResult } from '@/features/exams/exams-types';
-import { SAMPLE_EXAM_QUESTIONS } from '@/lib/data/exam-data';
-import {
-  addMistakeItem,
-  removeMistakeByQuestionId,
-  recordExamSubmission,
-} from '@/lib/utils/student-storage';
+import { ExamQuestion } from '@/lib/data/exam-types';
+import { createClient } from '@/lib/supabase/client';
+import { recordExamSubmission, removeMistakeByQuestionId } from '@/lib/utils/student-storage';
 
 interface PageProps {
   params: { courseId: string; examId: string } | Promise<{ courseId: string; examId: string }>;
@@ -21,14 +19,17 @@ interface PageProps {
 }
 
 export default function InteractiveExamPage({ params, searchParams }: PageProps) {
-  const resolvedParams = params && typeof (params as any)?.then === 'function' ? use(params as any) : (params as any) || {};
-  const resolvedSearchParams = searchParams && typeof (searchParams as any)?.then === 'function' ? use(searchParams as any) : (searchParams as any) || {};
+  const resolvedParams: any = params && typeof (params as any)?.then === 'function' ? use(params as any) : params || {};
+  const resolvedSearchParams: any = searchParams && typeof (searchParams as any)?.then === 'function' ? use(searchParams as any) : searchParams || {};
   const { courseId, examId } = resolvedParams;
   const isHomework = resolvedSearchParams?.type === 'homework';
-
   const examTitle = isHomework ? 'واجب المحاضرة التطبيقي' : 'كويز المحاضرة التفاعلي';
-  const questions = SAMPLE_EXAM_QUESTIONS;
   const storageKey = `lms_exam_draft_${examId}`;
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [remainingSeconds, setRemainingSeconds] = useState(20 * 60);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -36,6 +37,44 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
   const [submissionResult, setSubmissionResult] = useState<ExamSubmissionResult | null>(null);
   const [wrongCount, setWrongCount] = useState(0);
   const [unansweredWarningCount, setUnansweredWarningCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const initExam = async () => {
+      setIsLoading(true);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc('start_or_resume_exam', { p_exam_id: examId });
+
+        if (error || !data) {
+          setErrorMessage(error?.message || 'تعذر بدء الامتحان، يرجى التأكد من فتح المحاضرة');
+          setIsLoading(false);
+          return;
+        }
+
+        setAttemptId(data.attempt_id);
+        if (data.remaining_seconds) setRemainingSeconds(data.remaining_seconds);
+
+        if (Array.isArray(data.questions) && data.questions.length > 0) {
+          const mapped: ExamQuestion[] = data.questions.map((q: any, idx: number) => ({
+            id: q.id,
+            questionNumber: idx + 1,
+            questionText: q.question_text || 'انظر السؤال وحدد الإجابة الصحيحة:',
+            diagramTitle: q.image_url ? 'رسم السؤال والاختيارات' : undefined,
+            choices: ['( أ )', '( ب )', '( ج )', '( د )'],
+            correctChoiceIndex: 0,
+          }));
+          setQuestions(mapped);
+        } else {
+          setErrorMessage('لم يتم إضافة أسئلة لهذا الامتحان بعد');
+        }
+      } catch {
+        setErrorMessage('حدث خطأ في الاتصال بالسيرفر');
+      }
+      setIsLoading(false);
+    };
+
+    if (examId) initExam();
+  }, [examId]);
 
   useEffect(() => {
     try {
@@ -66,54 +105,56 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
     } catch {}
   };
 
-  const executeFinalSubmit = () => {
+  const executeFinalSubmit = async () => {
     setUnansweredWarningCount(null);
-    const solvedCount = Object.keys(answers).length;
-    let correct = 0;
-    let wrongs = 0;
+    if (!attemptId) return;
 
-    questions.forEach((q) => {
-      const studentAns = answers[q.id];
-      if (studentAns === q.correctChoiceIndex) {
-        correct += 1;
-        removeMistakeByQuestionId(q.id, isHomework ? 'homework' : 'quiz');
-      } else {
-        wrongs += 1;
-        addMistakeItem({
-          id: `mistake-${Date.now()}-${q.id}`,
-          category: isHomework ? 'homework' : 'quiz',
-          sourceTitle: `${examTitle} - سؤال ${q.questionNumber}`,
-          questionId: q.id,
-          questionText: q.questionText,
-          diagramTitle: q.diagramTitle,
-          choices: q.choices,
-          studentChoiceIndex: studentAns ?? 0,
-          correctChoiceIndex: q.correctChoiceIndex,
-          explanation: q.explanation,
-        });
-      }
+    const optionLetters = ['a', 'b', 'c', 'd'];
+    const mappedAnswers: Record<string, string> = {};
+    Object.entries(answers).forEach(([qId, choiceIdx]) => {
+      mappedAnswers[qId] = optionLetters[choiceIdx] || 'a';
     });
 
-    const percent = Math.round((correct / questions.length) * 100);
-    const isPassed = percent >= 50;
-    const result: ExamSubmissionResult = {
-      totalQuestions: questions.length,
-      solvedCount,
-      correctCount: correct,
-      score: correct,
-      percentage: percent,
-      isPassed,
-    };
+    try {
+      const supabase = createClient();
+      const { data: submitData } = await supabase.rpc('submit_exam_attempt', {
+        p_attempt_id: attemptId,
+        p_answers: mappedAnswers,
+      });
 
-    recordExamSubmission({
-      examId, courseId, isHomework, score: correct, total: questions.length,
-      percentage: percent, isPassed, examTitle,
-      submittedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-    });
+      await supabase.rpc('review_submitted_attempt', { p_attempt_id: attemptId });
 
-    setWrongCount(wrongs);
-    setSubmissionResult(result);
-    localStorage.removeItem(storageKey);
+      const score = Number(submitData?.score) || 0;
+      const pct = Number(submitData?.score_percentage) || 0;
+      const passed = !!submitData?.passed;
+      const solved = Number(submitData?.solved_questions) || Object.keys(answers).length;
+      const correct = Number(submitData?.correct_answers_count) || 0;
+
+      const result: ExamSubmissionResult = {
+        totalQuestions: questions.length,
+        solvedCount: solved,
+        correctCount: correct,
+        score,
+        percentage: pct,
+        isPassed: passed,
+      };
+
+      recordExamSubmission({
+        examId, courseId, isHomework, score, total: questions.length,
+        percentage: pct, isPassed: passed, examTitle,
+        submittedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      });
+
+      questions.forEach((q) => {
+        if (answers[q.id] === q.correctChoiceIndex) {
+          removeMistakeByQuestionId(q.id, isHomework ? 'homework' : 'quiz');
+        }
+      });
+
+      setWrongCount(questions.length - correct);
+      setSubmissionResult(result);
+      localStorage.removeItem(storageKey);
+    } catch {}
   };
 
   const handleRequestSubmit = () => {
@@ -126,6 +167,25 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
   };
 
   const activeQuestion = questions[currentIndex];
+
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center" dir="rtl">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-bio-teal border-t-transparent mx-auto mb-3" />
+        <span className="text-xs font-bold text-slate-500">جارٍ إعداد وتحميل أسئلة الامتحان...</span>
+      </div>
+    );
+  }
+
+  if (errorMessage && questions.length === 0) {
+    return (
+      <div className="p-8 text-center text-slate-500 rounded-2xl bg-white dark:bg-[#091D20]" dir="rtl">
+        <AlertCircle className="h-10 w-10 mx-auto mb-2 text-rose-500" />
+        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">{errorMessage}</h3>
+        <Link href={`/courses/${courseId}`} prefetch={false} className="mt-3 inline-block text-xs font-bold text-bio-teal">العودة للمحاضرات</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 sm:space-y-4" dir="rtl">
@@ -141,7 +201,7 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <ExamTimer initialSeconds={20 * 60} onTimeUp={executeFinalSubmit} />
+          <ExamTimer initialSeconds={remainingSeconds} onTimeUp={executeFinalSubmit} />
           <button type="button" onClick={handleRequestSubmit} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition active:scale-95">
             <CheckSquare className="h-3.5 w-3.5" />
             <span>إنهاء وتسليم</span>
@@ -172,37 +232,15 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
       </div>
 
       {unansweredWarningCount !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" dir="rtl">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 p-5 shadow-2xl space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
-              <AlertTriangle className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">تنبيه قبل تسليم الامتحان</h3>
-              <p className="mt-1.5 text-xs text-slate-600 dark:text-teal-200/80 leading-relaxed">
-                متبقي لديك <strong className="text-rose-500 font-black">{unansweredWarningCount}</strong> سؤال لم تقم بحله بعد! هل ترغب في إنهاء وتسليم الامتحان الآن؟
-              </p>
-            </div>
-            <div className="flex items-center gap-2.5 pt-1">
-              <button type="button" onClick={() => setUnansweredWarningCount(null)} className="flex-1 rounded-xl border border-slate-300 dark:border-teal-500/30 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#071719] transition">
-                العودة للمراجعة
-              </button>
-              <button type="button" onClick={executeFinalSubmit} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-xs font-bold shadow-sm transition active:scale-95">
-                نعم، تسليم الآن
-              </button>
-            </div>
-          </div>
-        </div>
+        <UnansweredWarningModal
+          unansweredCount={unansweredWarningCount}
+          onCancel={() => setUnansweredWarningCount(null)}
+          onConfirm={executeFinalSubmit}
+        />
       )}
 
       {submissionResult && (
-        <ExamResultModal
-          courseId={courseId}
-          examTitle={examTitle}
-          result={submissionResult}
-          wrongCount={wrongCount}
-          onRetake={() => { setAnswers({}); setFlagged({}); setSubmissionResult(null); setCurrentIndex(0); }}
-        />
+        <ExamResultModal courseId={courseId} examTitle={examTitle} result={submissionResult} wrongCount={wrongCount} onRetake={() => { setAnswers({}); setFlagged({}); setSubmissionResult(null); setCurrentIndex(0); }} />
       )}
     </div>
   );
