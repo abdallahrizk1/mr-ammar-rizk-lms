@@ -24,26 +24,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
 
+    let isMounted = true;
+
+    // Fast-path: immediate optimistic restore from localStorage prevents UI stall
+    try {
+      const cached = localStorage.getItem('lms_admin_auth_user');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.role && ['super_admin', 'admin', 'assistant'].includes(parsed.role)) {
+          setUser(parsed);
+          setIsLoading(false);
+        }
+      }
+    } catch {
+      // Fallback to async check
+    }
+
     const checkAuth = async () => {
       try {
         const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        // 4s timeout prevents indefinite loading stall if Supabase client is slow
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 4000)
+        );
+
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+        if (!isMounted) return;
 
         if (!session?.user) {
-          // Check cached session
           const cached = localStorage.getItem('lms_admin_auth_user');
           if (!cached) {
             router.push('/admin/login');
             return;
           }
           const parsed = JSON.parse(cached);
+          if (!['super_admin', 'admin', 'assistant'].includes(parsed?.role)) {
+            router.push('/admin/login');
+            return;
+          }
           setUser(parsed);
-          setIsLoading(false);
           return;
         }
 
-        const role = session.user.app_metadata?.role;
+        const role = session.user.app_metadata?.role || session.user.user_metadata?.role;
         if (!['super_admin', 'admin', 'assistant'].includes(role)) {
+          localStorage.removeItem('lms_admin_auth_user');
           router.push('/admin/login');
           return;
         }
@@ -51,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const adminSession: AdminUserSession = {
           id: session.user.id,
           fullName: session.user.user_metadata?.full_name || 'الكادر التعليمي',
-          phone: session.user.app_metadata?.phone || '',
+          phone: session.user.app_metadata?.phone || session.user.user_metadata?.phone || '',
           role,
           permissions: session.user.app_metadata?.permissions || {},
         };
@@ -59,13 +85,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setUser(adminSession);
         localStorage.setItem('lms_admin_auth_user', JSON.stringify(adminSession));
       } catch {
-        router.push('/admin/login');
+        const cached = localStorage.getItem('lms_admin_auth_user');
+        if (!cached) {
+          router.push('/admin/login');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router, isLoginPage]);
 
   // Realtime Presence for Live Online Students Counter

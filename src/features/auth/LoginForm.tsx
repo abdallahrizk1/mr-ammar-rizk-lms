@@ -90,7 +90,7 @@ export function LoginForm() {
       const userRole = data.user?.app_metadata?.role;
       setIsSubmitting(false);
       if (userRole === 'super_admin' || userRole === 'admin' || userRole === 'assistant') {
-        router.push('/admin');
+        typeof window !== 'undefined' ? (window.location.href = '/admin') : router.push('/admin');
       } else {
         router.push('/dashboard');
       }

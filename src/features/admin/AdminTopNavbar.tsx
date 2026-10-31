@@ -29,7 +29,11 @@ export function AdminTopNavbar({ user, onlineCount, onToggleMobileMenu }: AdminT
       await supabase.auth.signOut();
     } catch {}
     localStorage.removeItem('lms_admin_auth_user');
-    router.push('/admin/login');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin/login';
+    } else {
+      router.push('/admin/login');
+    }
   };
 
   const isDark = mounted ? resolvedTheme === 'dark' || theme === 'dark' : false;

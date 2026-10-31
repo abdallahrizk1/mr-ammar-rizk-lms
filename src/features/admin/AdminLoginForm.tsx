@@ -60,7 +60,7 @@ export function AdminLoginForm() {
         return;
       }
 
-      const role = signedInUser.app_metadata?.role;
+      const role = signedInUser.app_metadata?.role || signedInUser.user_metadata?.role;
       if (!role || !['super_admin', 'admin', 'assistant'].includes(role)) {
         await supabase.auth.signOut();
         setErrorMsg('عفواً، هذا الحساب ليس لديه صلاحية الدخول للوحة التحكم');
@@ -76,7 +76,17 @@ export function AdminLoginForm() {
         fullName: signedInUser.user_metadata?.full_name || 'الكادر التعليمي',
       }));
 
-      router.push('/admin');
+      // Full document navigation ensures all cookies are committed and prevents Next.js router cache stall
+      if (typeof window !== 'undefined') {
+        window.location.replace('/admin');
+      } else {
+        router.push('/admin');
+      }
+
+      // Safety timeout in case browser delays navigation
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 7000);
     } catch {
       setErrorMsg('حدث خطأ في الاتصال بالسيرفر');
       setIsSubmitting(false);
