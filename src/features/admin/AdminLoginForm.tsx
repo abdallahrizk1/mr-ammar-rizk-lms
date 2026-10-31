@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, Phone, ShieldCheck, AlertCircle, Eye, EyeOff, GraduationCap } from 'lucide-react';
 import { normalizePhoneNumber, sanitizePhoneInput, normalizeDigits } from '@/lib/utils/input-normalizer';
 import { createClient } from '@/lib/supabase/client';
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000;
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -14,9 +17,37 @@ export function AdminLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const savedLockout = localStorage.getItem('lms_admin_login_lockout_until');
+    if (savedLockout && Number(savedLockout) > Date.now()) {
+      setLockoutUntil(Number(savedLockout));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!lockoutUntil || lockoutUntil <= Date.now()) return;
+    const timer = setInterval(() => {
+      if (Date.now() >= lockoutUntil) {
+        setLockoutUntil(null);
+        localStorage.removeItem('lms_admin_login_lockout_until');
+      } else {
+        setTick((t) => t + 1);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutUntil]);
+
+  const isLocked = lockoutUntil !== null && lockoutUntil > Date.now();
+  const remainingSeconds = isLocked ? Math.ceil((lockoutUntil! - Date.now()) / 1000) : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
+
     const cleanPhone = normalizePhoneNumber(phone);
     if (!/^01[0125]\d{8}$/.test(cleanPhone)) {
       setErrorMsg('الرجاء إدخال رقم هاتف مصري صحيح مكون من 11 رقماً');
@@ -32,30 +63,57 @@ export function AdminLoginForm() {
 
     try {
       const supabase = createClient();
-      // Try teacher virtual email first, fallback to staff virtual email
-      const candidateEmails = [
-        `${cleanPhone}@teacher.platform.local`,
-        `${cleanPhone}@staff.platform.local`,
-      ];
+      let candidateEmails: string[] = [];
+      try {
+        const { data: resEmail, error: rpcErr } = await supabase.rpc('get_staff_auth_email', { p_phone: cleanPhone });
+        if (!rpcErr && resEmail) candidateEmails = [resEmail];
+      } catch {
+        // Fallback to candidates
+      }
+
+      if (candidateEmails.length === 0) {
+        candidateEmails = [
+          `${cleanPhone}@student.platform.local`,
+          `${cleanPhone}@teacher.platform.local`,
+          `${cleanPhone}@staff.platform.local`,
+        ];
+      }
 
       let signedInUser = null;
-      let lastError = null;
+      let lastError: { status?: number; code?: string; message?: string } | null = null;
 
       for (const email of candidateEmails) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (!error && data?.user) {
           signedInUser = data.user;
           break;
-        } else {
-          lastError = error;
+        }
+        lastError = error;
+        if (error?.status === 429 || error?.code === 'over_request_rate_limit' || error?.message?.toLowerCase().includes('rate limit')) {
+          break;
         }
       }
 
       if (!signedInUser) {
-        setErrorMsg('رقم الهاتف أو كلمة السر غير صحيحة');
+        const isRateLimit =
+          lastError?.status === 429 ||
+          lastError?.code === 'over_request_rate_limit' ||
+          lastError?.message?.toLowerCase().includes('rate limit');
+        const nextAttempts = failedAttempts + 1;
+        setFailedAttempts(nextAttempts);
+
+        if (isRateLimit || nextAttempts >= MAX_FAILED_ATTEMPTS) {
+          const lockTime = Date.now() + LOCKOUT_DURATION_MS;
+          setLockoutUntil(lockTime);
+          localStorage.setItem('lms_admin_login_lockout_until', String(lockTime));
+          setErrorMsg(
+            isRateLimit
+              ? 'تم حظر المحاولات مؤقتاً (Rate Limit) لحماية الحساب لكثرة الطلبات. يرجى الانتظار 5 دقائق.'
+              : 'تم قفل محاولات تسجيل الدخول لمدة 5 دقائق بعد 5 محاولات خاطئة لحماية لوحة التحكم'
+          );
+        } else {
+          setErrorMsg(`بيانات الدخول غير صحيحة. متبقي ${MAX_FAILED_ATTEMPTS - nextAttempts} محاولات`);
+        }
         setIsSubmitting(false);
         return;
       }
@@ -105,7 +163,13 @@ export function AdminLoginForm() {
         </p>
       </div>
 
-      {errorMsg && (
+      {isLocked && (
+        <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-center text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-300">
+          ⚠️ تم قفل محاولات الدخول مؤقتاً لحماية لوحة التحكم. يرجى الانتظار {remainingSeconds} ثانية.
+        </div>
+      )}
+
+      {errorMsg && !isLocked && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs sm:text-sm font-semibold text-rose-600 dark:text-rose-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{errorMsg}</span>
@@ -123,10 +187,11 @@ export function AdminLoginForm() {
               type="tel"
               inputMode="numeric"
               dir="ltr"
+              disabled={isLocked}
               value={phone}
               onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
               placeholder="012XXXXXXXX"
-              className="w-full rounded-xl border border-slate-300 bg-white pl-3.5 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 text-left focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400"
+              className="w-full rounded-xl border border-slate-300 bg-white pl-3.5 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 text-left focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal disabled:opacity-50 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400"
             />
             <Phone className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           </div>
@@ -141,10 +206,11 @@ export function AdminLoginForm() {
               id="admin-password"
               type={showPassword ? 'text' : 'password'}
               dir="ltr"
+              disabled={isLocked}
               value={password}
               onChange={(e) => setPassword(normalizeDigits(e.target.value))}
               placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 text-left focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400"
+              className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 text-left focus:border-bio-teal focus:outline-none focus:ring-1 focus:ring-bio-teal disabled:opacity-50 dark:border-teal-500/30 dark:bg-[#071719] dark:text-white dark:placeholder-slate-400"
             />
             <Lock className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <button
@@ -159,7 +225,7 @@ export function AdminLoginForm() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLocked}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95 disabled:opacity-50"
         >
           <ShieldCheck className="h-4 w-4" />
