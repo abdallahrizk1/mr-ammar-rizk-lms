@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, UserPlus, Trash2, CheckSquare, Square, RefreshCw, Key } from 'lucide-react';
+import { ShieldCheck, UserPlus, CheckSquare, Square } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { createAssistantAccountAction, updateAssistantPermissionsAction } from '@/app/actions/admin-actions';
 import type { AdminPermissions } from './admin-types';
@@ -68,6 +68,19 @@ export function StaffManager() {
     setNewPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleSetAllPermissions = (enableAll: boolean) => {
+    const updated: Record<string, boolean> = {};
+    PERMISSION_KEYS.forEach((p) => {
+      updated[p.key] = enableAll;
+    });
+    setNewPermissions(updated);
+  };
+
+  const handleOpenModal = () => {
+    setErrorMsg('');
+    setIsModalOpen(true);
+  };
+
   const handleCreateAssistant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !phone.trim() || password.length < 6) return;
@@ -121,8 +134,8 @@ export function StaffManager() {
 
         <button
           type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bio-teal dark:bg-emerald-600 text-white text-xs font-bold shadow hover:bg-bio-deep"
+          onClick={handleOpenModal}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bio-teal dark:bg-emerald-600 text-white text-xs font-bold shadow hover:bg-bio-deep cursor-pointer transition"
         >
           <UserPlus className="h-4 w-4" />
           <span>إضافة مساعد جديد</span>
@@ -160,7 +173,7 @@ export function StaffManager() {
                         key={p.key}
                         type="button"
                         onClick={() => handleUpdatePerm(a.id, p.key, isChecked)}
-                        className={`flex items-center gap-1.5 p-2 rounded-lg text-xs font-bold border text-right transition ${
+                        className={`flex items-center gap-1.5 p-2 rounded-lg text-xs font-bold border text-right transition cursor-pointer ${
                           isChecked
                             ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                             : 'border-slate-200 bg-white dark:bg-[#091D20] text-slate-400'
@@ -191,6 +204,7 @@ export function StaffManager() {
         setPassword={setPassword}
         newPermissions={newPermissions}
         onTogglePermission={handleTogglePermission}
+        onSetAllPermissions={handleSetAllPermissions}
         permissionKeys={PERMISSION_KEYS}
         isSaving={isSaving}
       />
