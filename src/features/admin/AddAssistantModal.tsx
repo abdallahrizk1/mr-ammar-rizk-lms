@@ -2,18 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  X,
-  UserPlus,
-  User,
-  Phone,
-  Lock,
-  Eye,
-  EyeOff,
-  Shield,
-  CheckSquare,
-  Square,
-  AlertCircle,
-  Loader2,
+  X, UserPlus, User, Phone, Lock, Eye, EyeOff, Shield, CheckSquare, Square, AlertCircle, Loader2,
 } from 'lucide-react';
 import type { AdminPermissions } from './admin-types';
 
@@ -36,44 +25,23 @@ interface AddAssistantModalProps {
 }
 
 export function AddAssistantModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  errorMsg,
-  fullName,
-  setFullName,
-  phone,
-  setPhone,
-  password,
-  setPassword,
-  newPermissions,
-  onTogglePermission,
-  permissionKeys,
-  isSaving,
-  onSetAllPermissions,
+  isOpen, onClose, onSubmit, errorMsg, fullName, setFullName, phone, setPhone, password, setPassword,
+  newPermissions, onTogglePermission, permissionKeys, isSaving, onSetAllPermissions,
 }: AddAssistantModalProps) {
   const [showPassword, setShowPassword] = useState(false);
 
-  // Close on Escape key press
   useEffect(() => {
     if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSaving) {
-        onClose();
-      }
-    };
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape' && !isSaving) onClose(); };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, isSaving]);
 
-  // Lock background body scroll when modal is open
   useEffect(() => {
     if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
+    const orig = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
+    return () => { document.body.style.overflow = orig; };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -85,10 +53,7 @@ export function AddAssistantModal({
       onSetAllPermissions(enableAll);
     } else {
       permissionKeys.forEach((p) => {
-        const isCurrent = !!newPermissions[p.key];
-        if (isCurrent !== enableAll) {
-          onTogglePermission(p.key);
-        }
+        if (!!newPermissions[p.key] !== enableAll) onTogglePermission(p.key);
       });
     }
   };
@@ -97,11 +62,7 @@ export function AddAssistantModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto bg-black/60 backdrop-blur-sm transition-opacity"
       dir="rtl"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isSaving) {
-          onClose();
-        }
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !isSaving) onClose(); }}
     >
       <div
         className="relative w-full max-w-lg md:max-w-xl lg:max-w-2xl max-h-[90vh] sm:max-h-[88vh] flex flex-col rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-teal-500/30 bg-white dark:bg-[#0D2628] shadow-2xl text-slate-900 dark:text-white my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-150"
@@ -109,19 +70,14 @@ export function AddAssistantModal({
         aria-modal="true"
         aria-labelledby="add-assistant-title"
       >
-        {/* Modal Header (Fixed at top) */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-teal-500/20 px-5 py-4 sm:px-6 sm:py-4.5 bg-slate-50/60 dark:bg-[#091D20]/60 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-bio-teal/10 text-bio-teal dark:bg-emerald-500/20 dark:text-emerald-300">
               <UserPlus className="h-5 w-5" />
             </div>
             <div>
-              <h3 id="add-assistant-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                إضافة حساب مساعد جديد
-              </h3>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-teal-200/60 mt-0.5">
-                إنشاء حساب معتمد وتحديد صلاحيات لوحة التحكم بدقة
-              </p>
+              <h3 id="add-assistant-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">إضافة حساب مساعد جديد</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-teal-200/60 mt-0.5">إنشاء حساب معتمد وتحديد صلاحيات لوحة التحكم بدقة</p>
             </div>
           </div>
           <button
@@ -136,9 +92,7 @@ export function AddAssistantModal({
           </button>
         </div>
 
-        {/* Modal Form */}
         <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {/* Scrollable Body Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
             {errorMsg && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold animate-in fade-in">
@@ -147,11 +101,8 @@ export function AddAssistantModal({
               </div>
             )}
 
-            {/* Assistant Full Name */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-teal-100 mb-1.5">
-                اسم المساعد بالكامل <span className="text-rose-500">*</span>
-              </label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-teal-100 mb-1.5">اسم المساعد بالكامل <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <User className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -166,12 +117,9 @@ export function AddAssistantModal({
               </div>
             </div>
 
-            {/* Phone & Password - Responsive 2 Columns on sm+ */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-teal-100 mb-1.5">
-                  رقم هاتف المساعد <span className="text-rose-500">*</span>
-                </label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-teal-100 mb-1.5">رقم هاتف المساعد <span className="text-rose-500">*</span></label>
                 <div className="relative">
                   <Phone className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -188,9 +136,7 @@ export function AddAssistantModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-teal-100 mb-1.5">
-                  كلمة السر (6 خانات+) <span className="text-rose-500">*</span>
-                </label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-teal-100 mb-1.5">كلمة السر (6 خانات+) <span className="text-rose-500">*</span></label>
                 <div className="relative">
                   <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -217,39 +163,23 @@ export function AddAssistantModal({
               </div>
             </div>
 
-            {/* Permissions Selection */}
             <div className="pt-2 border-t border-slate-100 dark:border-teal-500/20">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-teal-100">
-                    تحديد الصلاحيات الممنوحة:
-                  </span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-teal-100">تحديد الصلاحيات الممنوحة:</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#071719] text-bio-teal dark:text-emerald-300 border border-slate-200 dark:border-teal-500/20">
                     {selectedCount} من {permissionKeys.length} مفعلة
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => handleBulkToggle(true)}
-                    className="text-bio-teal hover:underline dark:text-emerald-400 font-bold"
-                  >
-                    تحديد الكل
-                  </button>
+                  <button type="button" onClick={() => handleBulkToggle(true)} className="text-bio-teal hover:underline dark:text-emerald-400 font-bold">تحديد الكل</button>
                   <span className="text-slate-300 dark:text-teal-900">|</span>
-                  <button
-                    type="button"
-                    onClick={() => handleBulkToggle(false)}
-                    className="text-slate-400 hover:underline hover:text-slate-600 dark:hover:text-slate-200 font-bold"
-                  >
-                    إلغاء الكل
-                  </button>
+                  <button type="button" onClick={() => handleBulkToggle(false)} className="text-slate-400 hover:underline hover:text-slate-600 dark:hover:text-slate-200 font-bold">إلغاء الكل</button>
                 </div>
               </div>
 
-              {/* 2-Column Responsive Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                 {permissionKeys.map((p) => {
                   const isChecked = !!newPermissions[p.key];
@@ -264,15 +194,9 @@ export function AddAssistantModal({
                       }`}
                     >
                       <div className="pt-0.5 shrink-0">
-                        {isChecked ? (
-                          <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <Square className="h-4 w-4 text-slate-300 dark:text-slate-600" />
-                        )}
+                        {isChecked ? <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : <Square className="h-4 w-4 text-slate-300 dark:text-slate-600" />}
                       </div>
-                      <span className="text-xs font-semibold leading-relaxed">
-                        {p.label}
-                      </span>
+                      <span className="text-xs font-semibold leading-relaxed">{p.label}</span>
                     </div>
                   );
                 })}
@@ -280,7 +204,6 @@ export function AddAssistantModal({
             </div>
           </div>
 
-          {/* Modal Footer (Pinned at bottom) */}
           <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 dark:border-teal-500/20 bg-slate-50/70 dark:bg-[#091D20]/70 shrink-0">
             <button
               type="button"
