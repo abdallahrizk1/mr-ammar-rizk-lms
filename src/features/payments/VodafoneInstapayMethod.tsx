@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Copy, Check, Upload, Send, AlertCircle, FileCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, Check, Upload, Send, AlertCircle, FileCheck, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { normalizePhoneNumber } from '@/lib/utils/input-normalizer';
 import { compressImageToWebp } from '@/lib/utils/image-compression';
 import { createClient } from '@/lib/supabase/client';
+import { getUploadPresignedUrlAction } from '@/app/actions/upload-actions';
 
 interface VodafoneInstapayMethodProps {
   courseId?: string;
@@ -13,35 +15,27 @@ interface VodafoneInstapayMethodProps {
 }
 
 export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: VodafoneInstapayMethodProps) {
-  const [walletNumber, setWalletNumber] = useState('01000000000');
-  const [instaHandle, setInstaHandle] = useState('ammar-rizk@instapay');
-
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedInsta, setCopiedInsta] = useState(false);
-
   const [senderPhone, setSenderPhone] = useState('');
   const [transactionRef, setTransactionRef] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from('platform_settings').select('*').limit(1).single();
-        if (data) {
-          if (Array.isArray(data.vodafone_cash_numbers) && data.vodafone_cash_numbers.length > 0) {
-            setWalletNumber(data.vodafone_cash_numbers[0]);
-          }
-          if (data.instapay_address) {
-            setInstaHandle(data.instapay_address);
-          }
-        }
-      } catch {}
-    };
-    fetchSettings();
-  }, []);
+  const { data: settings } = useQuery({
+    queryKey: ['platform_settings'],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from('platform_settings').select('*').limit(1).single();
+      return data;
+    },
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const walletNumber = (settings?.vodafone_cash_numbers && settings.vodafone_cash_numbers[0]) || '01000000000';
+  const instaHandle = settings?.instapay_address || 'ammar-rizk@instapay';
 
   const copyToClipboard = (text: string, type: 'wallet' | 'insta') => {
     navigator.clipboard.writeText(text);
@@ -72,6 +66,8 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const cleanPhone = normalizePhoneNumber(senderPhone);
     if (!cleanPhone || cleanPhone.length < 10) {
       setErrorMsg('يرجى إدخال رقم الهاتف المحول منه بشكل صحيح');
@@ -86,43 +82,77 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
       return;
     }
 
+    setIsSubmitting(true);
+    setErrorMsg('');
+
     try {
+      const presign = await getUploadPresignedUrlAction({
+        fileName: receiptFile.name,
+        contentType: receiptFile.type || 'image/webp',
+        folder: 'receipts',
+      });
+
+      let r2Path = '';
+      if (presign.success && presign.uploadUrl && presign.fileKey) {
+        const uploadRes = await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          body: receiptFile,
+          headers: { 'Content-Type': receiptFile.type || 'image/webp' },
+        });
+        if (!uploadRes.ok) {
+          setErrorMsg('فشل رفع صورة الإيصال إلى الخادم، يرجى المحاولة مرة أخرى');
+          setIsSubmitting(false);
+          return;
+        }
+        r2Path = presign.fileKey;
+      } else {
+        setErrorMsg(
+          presign.error ||
+            '⚠️ خدمة التخزين السحابي (Cloudflare R2) غير مهيأة بالسيرفر. يرجى تزويد مفاتيح R2 في .env.local لإتمام رفع الإيصال.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const supabase = createClient();
       if (courseId) {
-        await supabase.from('payment_receipts').insert({
+        const { error: insertErr } = await supabase.from('payment_receipts').insert({
           course_id: courseId,
           amount: coursePrice || 350,
           sender_phone: cleanPhone,
           reference_number: transactionRef.trim(),
-          receipt_image_r2_path: `/receipts/${Date.now()}-${receiptFile.name}`,
+          receipt_image_r2_path: r2Path,
           file_size_bytes: Math.min(receiptFile.size, 512000),
         });
+        if (insertErr) {
+          setErrorMsg(insertErr.message || 'حدث خطأ أثناء تسجيل الإيصال');
+          setIsSubmitting(false);
+          return;
+        }
       }
-    } catch {}
 
-    onSuccess({
-      senderPhone: cleanPhone,
-      transactionRef: transactionRef.trim(),
-      fileName: receiptFile.name,
-    });
+      onSuccess({
+        senderPhone: cleanPhone,
+        transactionRef: transactionRef.trim(),
+        fileName: receiptFile.name,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'حدث خطأ أثناء معالجة الطلب';
+      setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
-      {/* Wallet Details Display */}
       <div className="rounded-xl border border-bio-teal/20 bg-bio-teal/5 p-3.5 space-y-3 dark:border-teal-500/20 dark:bg-[#071719]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <span className="text-[10px] text-slate-400 block">رقم فودافون كاش المعتمد</span>
-            <span className="font-mono text-sm sm:text-base font-black text-slate-900 dark:text-emerald-400" dir="ltr">
-              {walletNumber}
-            </span>
+            <span className="font-mono text-sm sm:text-base font-black text-slate-900 dark:text-emerald-400" dir="ltr">{walletNumber}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => copyToClipboard(walletNumber, 'wallet')}
-            className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition self-start sm:self-auto"
-          >
+          <button type="button" onClick={() => copyToClipboard(walletNumber, 'wallet')} className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition self-start sm:self-auto">
             {copiedWallet ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
             <span>{copiedWallet ? 'تم النسخ' : 'نسخ الرقم'}</span>
           </button>
@@ -131,58 +161,25 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-bio-teal/15">
           <div>
             <span className="text-[10px] text-slate-400 block">عنوان الدفع إنستا باي (InstaPay IPA)</span>
-            <span className="font-mono text-xs sm:text-sm font-black text-slate-900 dark:text-emerald-400" dir="ltr">
-              {instaHandle}
-            </span>
+            <span className="font-mono text-xs sm:text-sm font-black text-slate-900 dark:text-emerald-400" dir="ltr">{instaHandle}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => copyToClipboard(instaHandle, 'insta')}
-            className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition self-start sm:self-auto"
-          >
+          <button type="button" onClick={() => copyToClipboard(instaHandle, 'insta')} className="inline-flex items-center gap-1 rounded-xl bg-white dark:bg-[#091D20] border border-slate-200 dark:border-teal-500/30 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition self-start sm:self-auto">
             {copiedInsta ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
             <span>{copiedInsta ? 'تم النسخ' : 'نسخ العنوان'}</span>
           </button>
         </div>
       </div>
 
-      {/* Input 1: Sender Phone */}
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-          الرقم المحول منه
-        </label>
-        <input
-          type="tel"
-          dir="ltr"
-          value={senderPhone}
-          onChange={(e) => {
-            setSenderPhone(e.target.value);
-            setErrorMsg('');
-          }}
-          placeholder="010XXXXXXXX"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white"
-        />
+        <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">الرقم المحول منه</label>
+        <input type="tel" dir="ltr" value={senderPhone} onChange={(e) => { setSenderPhone(e.target.value); setErrorMsg(''); }} placeholder="010XXXXXXXX" className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white" />
       </div>
 
-      {/* Input 2: Transaction Reference ID */}
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-          الرقم المرجعي للعملية (من رسالة فودافون أو إيصال إنستا باي)
-        </label>
-        <input
-          type="text"
-          dir="ltr"
-          value={transactionRef}
-          onChange={(e) => {
-            setTransactionRef(e.target.value);
-            setErrorMsg('');
-          }}
-          placeholder="Ref / Transaction ID"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white"
-        />
+        <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">الرقم المرجعي للعملية (من رسالة فودافون أو إيصال إنستا باي)</label>
+        <input type="text" dir="ltr" value={transactionRef} onChange={(e) => { setTransactionRef(e.target.value); setErrorMsg(''); }} placeholder="Ref / Transaction ID" className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white" />
       </div>
 
-      {/* Input 3: Upload Receipt (with WebP compression) */}
       <div>
         <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
           صورة إيصال التحويل (تُضغط تلقائياً لـ WebP لسرعة الإرسال)
@@ -218,14 +215,8 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
         </div>
       )}
 
-      {/* Submit button */}
-      <button
-        type="submit"
-        disabled={isCompressing}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm disabled:opacity-40 transition active:scale-95"
-      >
-        <Send className="h-4 w-4" />
-        <span>إرسال بيانات التحويل والتفعيل المؤقت الفوري</span>
+      <button type="submit" disabled={isCompressing || isSubmitting} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm disabled:opacity-40 transition active:scale-95">
+        {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /><span>جارٍ رفع الإيصال وتأكيد الاشتراك...</span></> : <><Send className="h-4 w-4" /><span>إرسال بيانات التحويل والتفعيل المؤقت الفوري</span></>}
       </button>
     </form>
   );

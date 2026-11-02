@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BookOpen, CreditCard, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { CourseItem } from '@/lib/data/courses-types';
 
@@ -10,6 +11,7 @@ interface CourseHeaderProps {
 }
 
 export function CourseHeader({ course }: CourseHeaderProps) {
+  const router = useRouter();
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -66,6 +68,8 @@ export function CourseHeader({ course }: CourseHeaderProps) {
             <Link
               href={`/courses/${course.id}/subscribe`}
               prefetch={false}
+              onMouseEnter={() => router.prefetch(`/courses/${course.id}/subscribe`)}
+              onTouchStart={() => router.prefetch(`/courses/${course.id}/subscribe`)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-4 py-2 text-xs font-bold shadow-sm transition active:scale-95"
             >
               <CreditCard className="h-4 w-4" />

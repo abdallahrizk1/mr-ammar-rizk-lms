@@ -76,17 +76,20 @@ export default function StudentForumPage() {
   const MAX_DAILY_QUESTIONS = 5;
   const remainingToday = Math.max(0, MAX_DAILY_QUESTIONS - todayQuestionsCount);
 
-  const handleAddNewQuestion = async (data: { title: string; text: string; imageBlobUrl?: string }) => {
+  const handleAddNewQuestion = async (data: { title: string; text: string; imageUrl?: string; imageBlobUrl?: string }) => {
     try {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return;
 
+      const img = data.imageUrl || data.imageBlobUrl;
+      const cleanImg = img && !img.startsWith('blob:') ? img : null;
+
       const { error } = await supabase.from('forum_questions').insert({
         student_id: user.id,
         question_text: data.text.trim() || data.title.trim(),
-        question_image_url: data.imageBlobUrl || null,
+        question_image_url: cleanImg,
         grade_level: '3',
         is_public: false,
         status: 'pending',

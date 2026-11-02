@@ -1,18 +1,32 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, use, useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { ChevronRight, Layers, ArrowRight, BookOpen } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { CourseHeader } from '@/features/courses/CourseHeader';
 import { LectureItem } from '@/features/courses/LectureItem';
 import { QuizPreCardModal } from '@/features/courses/QuizPreCardModal';
 import { PdfViewerModal } from '@/features/courses/PdfViewerModal';
-import { CrossPlatformHlsPlayer } from '@/features/video-player/CrossPlatformHlsPlayer';
 import { InAppNotificationBanner, InAppNotification } from '@/components/ui/InAppNotificationBanner';
 import { CourseItem, CourseModule, LectureMaterials } from '@/lib/data/courses-types';
 import { mapTreeDataToModules } from '@/features/courses/course-tree-mapper';
 import { createClient } from '@/lib/supabase/client';
 import { recordWatchHistory, getStoredExamSubmissions } from '@/lib/utils/student-storage';
+
+const CrossPlatformHlsPlayer = dynamic(
+  () => import('@/features/video-player/CrossPlatformHlsPlayer').then((m) => m.CrossPlatformHlsPlayer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-black text-white text-xs">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent mr-2" />
+        <span>جارٍ تحميل مشغل الفيديو...</span>
+      </div>
+    ),
+  }
+);
 
 interface PageProps {
   params: { courseId: string } | Promise<{ courseId: string }>;
@@ -21,10 +35,6 @@ interface PageProps {
 export default function CourseDetailPage({ params }: PageProps) {
   const resolvedParams = params && typeof (params as any)?.then === 'function' ? use(params as any) : (params as any) || {};
   const courseId = resolvedParams.courseId;
-
-  const [course, setCourse] = useState<CourseItem | null>(null);
-  const [modules, setModules] = useState<CourseModule[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const [activeVideo, setActiveVideo] = useState<{ hlsUrl: string; title: string; lessonId: string } | null>(null);
   const [activePdf, setActivePdf] = useState<{ title: string; pagesCount: number } | null>(null);
@@ -36,22 +46,22 @@ export default function CourseDetailPage({ params }: PageProps) {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const fetchCourseAndTree = async () => {
-    setIsLoading(true);
-    if (!courseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId)) {
-      setIsLoading(false);
-      return;
-    }
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ['course-detail-tree', courseId],
+    queryFn: async () => {
+      if (!courseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId)) {
+        return { course: null, rawModules: [] as CourseModule[] };
+      }
       const supabase = createClient();
       const [courseRes, treeRes] = await Promise.all([
         supabase.from('courses').select('*').eq('id', courseId).single(),
         supabase.rpc('get_course_tree_with_locks', { p_course_id: courseId }),
       ]);
 
+      let cItem: CourseItem | null = null;
       if (courseRes.data) {
         const c = courseRes.data;
-        setCourse({
+        cItem = {
           id: c.id,
           title: c.title,
           tagline: c.description || 'منهج الأحياء للثانوية العامة 2027',
@@ -66,48 +76,49 @@ export default function CourseDetailPage({ params }: PageProps) {
           bannerImage: c.thumbnail_url || '/images/teacher-circle.png',
           lecturesCount: 0,
           modules: [],
+        };
+      }
+      const rawModules = Array.isArray(treeRes.data) ? mapTreeDataToModules(treeRes.data) : [];
+      return { course: cItem, rawModules };
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const course = data?.course || null;
+
+  const modules = useMemo(() => {
+    if (!data?.rawModules) return [];
+    const submissions = getStoredExamSubmissions();
+    return data.rawModules.map((mod) => {
+      const dynamicLectures: LectureMaterials[] = [];
+      for (let i = 0; i < mod.lectures.length; i++) {
+        const orig = mod.lectures[i];
+        const subQ = submissions[orig.quiz.id];
+        const subHw = submissions[orig.homework.id];
+        const isQuizPassed = subQ ? subQ.isPassed : orig.quiz.isPassed;
+        const isHwSubmitted = subHw ? true : orig.homework.isSubmitted;
+        const prev = dynamicLectures[i - 1];
+        const isUnlocked = i === 0 || !!(prev && prev.quiz.isPassed && prev.homework.isSubmitted);
+        dynamicLectures.push({
+          ...orig,
+          isUnlocked,
+          quiz: { ...orig.quiz, isPassed: isQuizPassed },
+          homework: { ...orig.homework, isSubmitted: isHwSubmitted },
         });
       }
-
-      if (Array.isArray(treeRes.data)) {
-        const raw = mapTreeDataToModules(treeRes.data);
-        const submissions = getStoredExamSubmissions();
-        const computed = raw.map((mod) => {
-          const dynamicLectures: LectureMaterials[] = [];
-          for (let i = 0; i < mod.lectures.length; i++) {
-            const orig = mod.lectures[i];
-            const subQ = submissions[orig.quiz.id];
-            const subHw = submissions[orig.homework.id];
-            const isQuizPassed = subQ ? subQ.isPassed : orig.quiz.isPassed;
-            const isHwSubmitted = subHw ? true : orig.homework.isSubmitted;
-            const prev = dynamicLectures[i - 1];
-            const isUnlocked = i === 0 || !!(prev && prev.quiz.isPassed && prev.homework.isSubmitted);
-            dynamicLectures.push({
-              ...orig,
-              isUnlocked,
-              quiz: { ...orig.quiz, isPassed: isQuizPassed },
-              homework: { ...orig.homework, isSubmitted: isHwSubmitted },
-            });
-          }
-          return { ...mod, lectures: dynamicLectures };
-        });
-        setModules(computed);
-      }
-    } catch {}
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchCourseAndTree();
-  }, [courseId]);
+      return { ...mod, lectures: dynamicLectures };
+    });
+  }, [data?.rawModules]);
 
   const handlePlayVideo = async (hlsUrl: string, title: string, lessonId: string) => {
     let resolvedUrl = hlsUrl;
     if (hlsUrl && !hlsUrl.includes('/') && hlsUrl.length > 20) {
       try {
         const supabase = createClient();
-        const { data } = await supabase.rpc('get_authorized_lesson_item_content', { p_item_id: hlsUrl });
-        if (data?.r2_path_or_url) resolvedUrl = data.r2_path_or_url;
+        const { data: itemData } = await supabase.rpc('get_authorized_lesson_item_content', { p_item_id: hlsUrl });
+        if (itemData?.r2_path_or_url) resolvedUrl = itemData.r2_path_or_url;
       } catch {}
     }
 
@@ -230,4 +241,3 @@ export default function CourseDetailPage({ params }: PageProps) {
     </div>
   );
 }
-

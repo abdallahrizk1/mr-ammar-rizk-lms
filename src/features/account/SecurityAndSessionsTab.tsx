@@ -1,16 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Shield,
-  Smartphone,
-  Laptop,
-  Lock,
-  CheckCircle2,
-  AlertTriangle,
-  History,
-  KeyRound,
-} from 'lucide-react';
+import { Shield, Smartphone, Laptop, Lock, CheckCircle2, AlertTriangle, History, KeyRound, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { LoginSessionItem } from '@/lib/data/student-profile-data';
 import { normalizeDigits } from '@/lib/utils/input-normalizer';
 import { PaginationControls } from '@/components/ui/PaginationControls';
@@ -37,8 +29,11 @@ export function SecurityAndSessionsTab({
   const startIdx = (sessionPage - 1) * PAGE_SIZE;
   const paginatedSessions = sessions.slice(startIdx, startIdx + PAGE_SIZE);
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUpdating) return;
     if (!currentPassword) {
       setStatusMsg({ type: 'error', text: 'يرجى إدخال كلمة السر الحالية' });
       return;
@@ -52,11 +47,38 @@ export function SecurityAndSessionsTab({
       return;
     }
 
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setStatusMsg({ type: 'success', text: 'تم تحديث كلمة السر بنجاح ✅' });
-    setTimeout(() => setStatusMsg(null), 4000);
+    setIsUpdating(true);
+    setStatusMsg(null);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        setStatusMsg({ type: 'error', text: 'تعذر التحقق من جلسة المستخدم' });
+        return;
+      }
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (verifyErr) {
+        setStatusMsg({ type: 'error', text: 'كلمة السر الحالية غير صحيحة ❌' });
+        return;
+      }
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateErr) {
+        setStatusMsg({ type: 'error', text: updateErr.message || 'فشل تحديث كلمة السر' });
+        return;
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setStatusMsg({ type: 'success', text: 'تم تحديث كلمة السر بنجاح ✅' });
+      setTimeout(() => setStatusMsg(null), 4000);
+    } catch {
+      setStatusMsg({ type: 'error', text: 'حدث خطأ أثناء تحديث كلمة السر' });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -65,36 +87,20 @@ export function SecurityAndSessionsTab({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              مرات تسجيل الخروج اليوم
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-slate-300">
-              <History className="h-4 w-4" />
-            </div>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">مرات تسجيل الخروج اليوم</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-slate-300"><History className="h-4 w-4" /></div>
           </div>
-          <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">
-            {logoutsToday} <span className="text-xs font-normal text-slate-400">مرات خلال 24 ساعة</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400 dark:text-teal-300/60">
-            للعرض والإحصاء فقط بدون حظر الحساب
-          </p>
+          <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">{logoutsToday} <span className="text-xs font-normal text-slate-400">مرات خلال 24 ساعة</span></div>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-teal-300/60">للعرض والإحصاء فقط بدون حظر الحساب</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              مرات تسجيل الخروج هذا الأسبوع
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-slate-300">
-              <Shield className="h-4 w-4" />
-            </div>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">مرات تسجيل الخروج هذا الأسبوع</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 dark:bg-[#071719] text-slate-600 dark:text-slate-300"><Shield className="h-4 w-4" /></div>
           </div>
-          <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">
-            {logoutsThisWeek} <span className="text-xs font-normal text-slate-400">مرات خلال آخر 7 أيام</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400 dark:text-teal-300/60">
-            سجل حركة الدخول والخروج المنتظمة لحسابك
-          </p>
+          <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">{logoutsThisWeek} <span className="text-xs font-normal text-slate-400">مرات خلال آخر 7 أيام</span></div>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-teal-300/60">سجل حركة الدخول والخروج المنتظمة لحسابك</p>
         </div>
       </div>
 
@@ -220,9 +226,13 @@ export function SecurityAndSessionsTab({
               <span>{statusMsg.text}</span>
             </div>
           )}
-          <button type="submit" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-bio-teal dark:bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition active:scale-95">
-            <Lock className="h-3.5 w-3.5" />
-            <span>حفظ كلمة السر الجديدة</span>
+          <button
+            type="submit"
+            disabled={isUpdating}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-bio-teal dark:bg-emerald-600 disabled:opacity-50 px-4 py-2 text-xs font-bold text-white shadow-sm transition active:scale-95"
+          >
+            {isUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+            <span>{isUpdating ? 'جارٍ التحديث...' : 'حفظ كلمة السر الجديدة'}</span>
           </button>
         </form>
       </div>

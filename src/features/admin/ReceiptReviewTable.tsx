@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, ExternalLink, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, XCircle, RefreshCw, Eye, Loader2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 
 interface ReceiptItem {
@@ -18,13 +19,13 @@ interface ReceiptItem {
 }
 
 export function ReceiptReviewTable() {
-  const [receipts, setReceipts] = useState<ReceiptItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchReceipts = async () => {
-    setIsLoading(true);
-    try {
+  const { data: receipts = [], isLoading, refetch } = useQuery<ReceiptItem[]>({
+    queryKey: ['admin-payment-receipts'],
+    queryFn: async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from('payment_receipts')
@@ -37,7 +38,7 @@ export function ReceiptReviewTable() {
 
       if (data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped: ReceiptItem[] = data.map((r: any) => ({
+        return data.map((r: any) => ({
           id: r.id,
           student_id: r.student_id,
           course_id: r.course_id,
@@ -49,17 +50,16 @@ export function ReceiptReviewTable() {
           student_name: r.profiles?.full_name || 'طالب المنصة',
           course_title: r.courses?.title || 'كورس الأحياء',
         }));
-        setReceipts(mapped);
       }
-    } catch {}
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchReceipts();
-  }, []);
+      return [];
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   const handleApprove = async (id: string) => {
+    if (processingId) return;
+    setProcessingId(id);
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -68,14 +68,15 @@ export function ReceiptReviewTable() {
         .eq('id', id);
 
       if (!error) {
-        setReceipts((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r))
-        );
+        await queryClient.invalidateQueries({ queryKey: ['admin-payment-receipts'] });
       }
     } catch {}
+    setProcessingId(null);
   };
 
   const handleReject = async (id: string) => {
+    if (processingId) return;
+    setProcessingId(id);
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -84,11 +85,10 @@ export function ReceiptReviewTable() {
         .eq('id', id);
 
       if (!error) {
-        setReceipts((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status: 'rejected' } : r))
-        );
+        await queryClient.invalidateQueries({ queryKey: ['admin-payment-receipts'] });
       }
     } catch {}
+    setProcessingId(null);
   };
 
   return (
@@ -104,7 +104,7 @@ export function ReceiptReviewTable() {
         </div>
         <button
           type="button"
-          onClick={fetchReceipts}
+          onClick={() => refetch()}
           className="p-2 rounded-xl border border-slate-200 dark:border-teal-500/20 text-slate-600 hover:bg-slate-100 dark:text-slate-300"
           title="تحديث"
         >
@@ -165,17 +165,20 @@ export function ReceiptReviewTable() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           type="button"
+                          disabled={processingId === r.id}
                           onClick={() => handleApprove(r.id)}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-500 transition text-[11px]"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-500 disabled:opacity-50 transition text-[11px] inline-flex items-center gap-1"
                         >
-                          قبول وتفعيل ✅
+                          {processingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                          <span>قبول وتفعيل ✅</span>
                         </button>
                         <button
                           type="button"
+                          disabled={processingId === r.id}
                           onClick={() => handleReject(r.id)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold hover:bg-rose-500 transition text-[11px]"
+                          className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold hover:bg-rose-500 disabled:opacity-50 transition text-[11px] inline-flex items-center gap-1"
                         >
-                          رفض ❌
+                          <span>رفض ❌</span>
                         </button>
                       </div>
                     ) : (

@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Send, ImagePlus, AlertCircle, FileCheck } from 'lucide-react';
+import { X, Send, ImagePlus, AlertCircle, FileCheck, Loader2 } from 'lucide-react';
 import { compressImageToWebp } from '@/lib/utils/image-compression';
+import { getUploadPresignedUrlAction } from '@/app/actions/upload-actions';
 
 interface NewQuestionModalProps {
   remainingQuestionsToday: number;
   maxDailyQuestions: number;
-  onSubmit: (data: { title: string; text: string; imageBlobUrl?: string }) => void;
+  onSubmit: (data: { title: string; text: string; imageUrl?: string; imageBlobUrl?: string }) => Promise<void> | void;
   onClose: () => void;
 }
 
@@ -20,6 +21,7 @@ export function NewQuestionModal({
   const [text, setText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,26 +40,69 @@ export function NewQuestionModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const trimmed = text.trim();
     if (!trimmed) {
       setErrorMsg('يرجى كتابة نص السؤال بوضوح');
       return;
     }
 
-    let imageBlobUrl: string | undefined = undefined;
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    let finalImageUrl: string | undefined = undefined;
+
     if (imageFile) {
-      imageBlobUrl = URL.createObjectURL(imageFile);
+      try {
+        const presign = await getUploadPresignedUrlAction({
+          fileName: imageFile.name,
+          contentType: imageFile.type || 'image/webp',
+          folder: 'forum',
+        });
+
+        if (presign.success && presign.uploadUrl) {
+          const uploadRes = await fetch(presign.uploadUrl, {
+            method: 'PUT',
+            body: imageFile,
+            headers: { 'Content-Type': imageFile.type || 'image/webp' },
+          });
+
+          if (!uploadRes.ok) {
+            setErrorMsg('فشل رفع الصورة إلى خادم التخزين، يرجى المحاولة مرة أخرى');
+            setIsSubmitting(false);
+            return;
+          }
+          finalImageUrl = presign.publicUrl || presign.fileKey;
+        } else {
+          setErrorMsg(
+            presign.error ||
+              'تعذر إرفاق الصورة: خدمة التخزين السحابي غير مهيأة بالسيرفر. يمكنك إرسال السؤال بدون صورة أو تزويد مفاتيح R2.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      } catch {
+        setErrorMsg('حدث خطأ أثناء رفع الصورة، يمكنك إرسال السؤال بدون صورة');
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     const titleSnippet = trimmed.slice(0, 45) + (trimmed.length > 45 ? '...' : '');
 
-    onSubmit({
-      title: titleSnippet,
-      text: trimmed,
-      imageBlobUrl,
-    });
+    try {
+      await onSubmit({
+        title: titleSnippet,
+        text: trimmed,
+        imageUrl: finalImageUrl,
+        imageBlobUrl: finalImageUrl,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -82,7 +127,7 @@ export function NewQuestionModal({
           </button>
         </div>
 
-        {/* Form Body: Only question text and insert image */}
+        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-3.5">
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -100,7 +145,6 @@ export function NewQuestionModal({
             />
           </div>
 
-          {/* Simple Image upload: 'إدراج صورة' only */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
               إدراج صورة
@@ -138,6 +182,7 @@ export function NewQuestionModal({
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               className="rounded-xl border border-slate-300 dark:border-teal-500/30 px-3.5 py-1.5 text-xs font-bold transition"
             >
               إلغاء
@@ -145,11 +190,20 @@ export function NewQuestionModal({
 
             <button
               type="submit"
-              disabled={isCompressing || !text.trim()}
+              disabled={isCompressing || isSubmitting || !text.trim()}
               className="inline-flex items-center gap-1.5 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-4 py-2 text-xs font-bold shadow-sm disabled:opacity-40 transition active:scale-95"
             >
-              <Send className="h-3.5 w-3.5" />
-              <span>إرسال السؤال</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>جارٍ إرسال السؤال...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5" />
+                  <span>إرسال السؤال</span>
+                </>
+              )}
             </button>
           </div>
         </form>

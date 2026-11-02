@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, use } from 'react';
 import Link from 'next/link';
 import { ChevronRight, CreditCard, KeyRound, Smartphone } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { InvoiceSummaryStep } from '@/features/payments/InvoiceSummaryStep';
 import { CenterCodeMethod } from '@/features/payments/CenterCodeMethod';
 import { VodafoneInstapayMethod } from '@/features/payments/VodafoneInstapayMethod';
@@ -16,61 +17,67 @@ interface PageProps {
   params: { courseId: string } | Promise<{ courseId: string }>;
 }
 
+const DEFAULT_COURSE: CourseItem = {
+  id: 'course-1',
+  title: 'كورس الأحياء',
+  tagline: 'منهج الأحياء 2027',
+  description: '',
+  grade: 'الصف الثالث الثانوي',
+  price: 350,
+  priceFormatted: '350 ج.م',
+  isComprehensive: false,
+  isEnrolled: false,
+  isTemporary: false,
+  progress: 0,
+  bannerImage: '/images/teacher-circle.png',
+  lecturesCount: 12,
+  modules: [],
+};
+
 export default function CourseSubscribePage({ params }: PageProps) {
   const resolvedParams = params && typeof (params as any)?.then === 'function' ? use(params as any) : (params as any) || {};
   const { courseId } = resolvedParams;
+  const queryClient = useQueryClient();
 
-  const [course, setCourse] = useState<CourseItem>({
-    id: courseId || 'course-1',
-    title: 'كورس الأحياء',
-    tagline: 'منهج الأحياء 2027',
-    description: '',
-    grade: 'الصف الثالث الثانوي',
-    price: 350,
-    priceFormatted: '350 ج.م',
-    isComprehensive: false,
-    isEnrolled: false,
-    isTemporary: false,
-    progress: 0,
-    bannerImage: '/images/teacher-circle.png',
-    lecturesCount: 12,
-    modules: [],
+  const { data: course = DEFAULT_COURSE } = useQuery<CourseItem>({
+    queryKey: ['subscribe-course-detail', courseId],
+    initialData: () => {
+      const cached = queryClient.getQueryData<CourseItem[]>(['student-courses-list']);
+      return cached?.find((c) => c.id === courseId);
+    },
+    queryFn: async () => {
+      if (!courseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId)) {
+        return DEFAULT_COURSE;
+      }
+      const supabase = createClient();
+      const { data } = await supabase.from('courses').select('*').eq('id', courseId).single();
+      if (data) {
+        return {
+          id: data.id,
+          title: data.title,
+          tagline: data.description || 'منهج الأحياء 2027',
+          description: data.description || '',
+          grade: `الصف ${data.grade_level} الثانوي`,
+          price: data.price,
+          priceFormatted: data.price === 0 ? 'مجاني' : `${data.price} ج.م`,
+          isComprehensive: !!data.is_bundle,
+          isEnrolled: false,
+          isTemporary: false,
+          progress: 0,
+          bannerImage: data.thumbnail_url || '/images/teacher-circle.png',
+          lecturesCount: 12,
+          modules: [],
+        };
+      }
+      return DEFAULT_COURSE;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const [currentStep, setCurrentStep] = useState<PaymentStep>(1);
   const [method, setMethod] = useState<PaymentMethodType>('center_code');
   const [isCenterCodeActivation, setIsCenterCodeActivation] = useState(false);
-
-  useEffect(() => {
-    const fetchCourse = async () => {
-      if (!courseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId)) {
-        return;
-      }
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from('courses').select('*').eq('id', courseId).single();
-        if (data) {
-          setCourse({
-            id: data.id,
-            title: data.title,
-            tagline: data.description || 'منهج الأحياء 2027',
-            description: data.description || '',
-            grade: `الصف ${data.grade_level} الثانوي`,
-            price: data.price,
-            priceFormatted: data.price === 0 ? 'مجاني' : `${data.price} ج.م`,
-            isComprehensive: !!data.is_bundle,
-            isEnrolled: false,
-            isTemporary: false,
-            progress: 0,
-            bannerImage: data.thumbnail_url || '/images/teacher-circle.png',
-            lecturesCount: 12,
-            modules: [],
-          });
-        }
-      } catch {}
-    };
-    if (courseId) fetchCourse();
-  }, [courseId]);
 
   const handleActivationComplete = (isCode: boolean) => {
     setIsCenterCodeActivation(isCode);
@@ -180,18 +187,19 @@ export default function CourseSubscribePage({ params }: PageProps) {
             </button>
           </div>
 
-          {/* Method Content */}
-          {method === 'center_code' ? (
+          {/* Keep both methods mounted: zero requests and preserved form input on toggle */}
+          <div className={method === 'center_code' ? 'block' : 'hidden'}>
             <CenterCodeMethod
               onSuccess={() => handleActivationComplete(true)}
             />
-          ) : (
+          </div>
+          <div className={method === 'vodafone_instapay' ? 'block' : 'hidden'}>
             <VodafoneInstapayMethod
               courseId={course.id}
               coursePrice={course.price}
               onSuccess={() => handleActivationComplete(false)}
             />
-          )}
+          </div>
         </div>
       )}
 

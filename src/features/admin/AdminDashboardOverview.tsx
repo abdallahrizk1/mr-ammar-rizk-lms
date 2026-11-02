@@ -13,6 +13,7 @@ import {
   FileCheck2,
   RefreshCw,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 
 interface DashboardStats {
@@ -23,21 +24,12 @@ interface DashboardStats {
 }
 
 export function AdminDashboardOverview() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalStudents: 0,
-    pendingReceipts: 0,
-    unansweredForum: 0,
-    totalCourses: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
   const [onlineCount, setOnlineCount] = useState(1);
 
-  const fetchStats = async () => {
-    setIsLoading(true);
-    try {
+  const { data: stats = { totalStudents: 0, pendingReceipts: 0, unansweredForum: 0, totalCourses: 0 }, isLoading, refetch } = useQuery<DashboardStats>({
+    queryKey: ['admin-dashboard-stats'],
+    queryFn: async () => {
       const supabase = createClient();
-
       const [studentsRes, receiptsRes, forumRes, coursesRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
         supabase.from('payment_receipts').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
@@ -45,21 +37,18 @@ export function AdminDashboardOverview() {
         supabase.from('courses').select('id', { count: 'exact', head: true }).is('deleted_at', null),
       ]);
 
-      setStats({
+      return {
         totalStudents: studentsRes.count || 0,
         pendingReceipts: receiptsRes.count || 0,
         unansweredForum: forumRes.count || 0,
         totalCourses: coursesRes.count || 0,
-      });
-    } catch {
-      // Fallback
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   useEffect(() => {
-    fetchStats();
     try {
       const supabase = createClient();
       const channel = supabase.channel('platform_presence');
@@ -96,7 +85,7 @@ export function AdminDashboardOverview() {
 
         <button
           type="button"
-          onClick={fetchStats}
+          onClick={() => refetch()}
           disabled={isLoading}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#091D20] dark:hover:bg-[#0c272a] text-xs font-bold text-slate-700 dark:text-emerald-300 transition"
         >

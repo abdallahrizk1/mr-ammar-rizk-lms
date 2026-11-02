@@ -35,10 +35,14 @@ export async function registerStudentAction(input: RegisterStudentInput) {
 
     const adminClient = createAdminClient();
 
-    // Check if user already exists
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-    const isTaken = existingUsers?.users?.some((u) => u.email === virtualEmail);
-    if (isTaken) {
+    // Check if user phone already exists in profiles
+    const { data: existingProfile } = await adminClient
+      .from('profiles')
+      .select('id')
+      .eq('phone', cleanPhone)
+      .maybeSingle();
+
+    if (existingProfile) {
       return { success: false, error: 'رقم الهاتف مسجل بالفعل مسبقاً، يرجى تسجيل الدخول' };
     }
 
@@ -58,6 +62,9 @@ export async function registerStudentAction(input: RegisterStudentInput) {
     });
 
     if (error) {
+      if (error.message?.toLowerCase().includes('already') || (error as any).status === 422) {
+        return { success: false, error: 'رقم الهاتف مسجل بالفعل مسبقاً، يرجى تسجيل الدخول' };
+      }
       return { success: false, error: error.message };
     }
 

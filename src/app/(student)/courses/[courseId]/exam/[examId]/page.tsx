@@ -37,6 +37,7 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
   const [submissionResult, setSubmissionResult] = useState<ExamSubmissionResult | null>(null);
   const [wrongCount, setWrongCount] = useState(0);
   const [unansweredWarningCount, setUnansweredWarningCount] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const initExam = async () => {
@@ -111,6 +112,8 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
   };
 
   const executeFinalSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setUnansweredWarningCount(null);
     const optionLetters = ['a', 'b', 'c', 'd'];
     const mappedAnswers: Record<string, string> = {};
@@ -119,29 +122,33 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
     let score = 0, pct = 0, passed = false, correct = 0;
     const solved = Object.keys(answers).length;
 
-    if (attemptId) {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.rpc('submit_exam_attempt', { p_attempt_id: attemptId, p_answers: mappedAnswers });
-        await supabase.rpc('review_submitted_attempt', { p_attempt_id: attemptId });
-        score = Number(data?.score) || 0;
-        pct = Number(data?.score_percentage) || 0;
-        passed = !!data?.passed;
-        correct = Number(data?.correct_answers_count) || 0;
-      } catch {}
-    } else {
-      correct = questions.filter((q) => answers[q.id] === q.correctChoiceIndex).length;
-      score = correct;
-      pct = Math.round((correct / (questions.length || 1)) * 100);
-      passed = pct >= 50;
-    }
+    try {
+      if (attemptId) {
+        try {
+          const supabase = createClient();
+          const { data } = await supabase.rpc('submit_exam_attempt', { p_attempt_id: attemptId, p_answers: mappedAnswers });
+          await supabase.rpc('review_submitted_attempt', { p_attempt_id: attemptId });
+          score = Number(data?.score) || 0;
+          pct = Number(data?.score_percentage) || 0;
+          passed = !!data?.passed;
+          correct = Number(data?.correct_answers_count) || 0;
+        } catch {}
+      } else {
+        correct = questions.filter((q) => answers[q.id] === q.correctChoiceIndex).length;
+        score = correct;
+        pct = Math.round((correct / (questions.length || 1)) * 100);
+        passed = pct >= 50;
+      }
 
-    const result: ExamSubmissionResult = { totalQuestions: questions.length, solvedCount: solved, correctCount: correct, score, percentage: pct, isPassed: passed };
-    recordExamSubmission({ examId, courseId, isHomework, score, total: questions.length, percentage: pct, isPassed: passed, examTitle, submittedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) });
-    questions.forEach((q) => { if (answers[q.id] === q.correctChoiceIndex) removeMistakeByQuestionId(q.id, isHomework ? 'homework' : 'quiz'); });
-    setWrongCount(questions.length - correct);
-    setSubmissionResult(result);
-    try { localStorage.removeItem(storageKey); } catch {}
+      const result: ExamSubmissionResult = { totalQuestions: questions.length, solvedCount: solved, correctCount: correct, score, percentage: pct, isPassed: passed };
+      recordExamSubmission({ examId, courseId, isHomework, score, total: questions.length, percentage: pct, isPassed: passed, examTitle, submittedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) });
+      questions.forEach((q) => { if (answers[q.id] === q.correctChoiceIndex) removeMistakeByQuestionId(q.id, isHomework ? 'homework' : 'quiz'); });
+      setWrongCount(questions.length - correct);
+      setSubmissionResult(result);
+      try { localStorage.removeItem(storageKey); } catch {}
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRequestSubmit = () => {
@@ -189,9 +196,9 @@ export default function InteractiveExamPage({ params, searchParams }: PageProps)
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <ExamTimer initialSeconds={remainingSeconds} onTimeUp={executeFinalSubmit} />
-          <button type="button" onClick={handleRequestSubmit} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition active:scale-95">
-            <CheckSquare className="h-3.5 w-3.5" />
-            <span>إنهاء وتسليم</span>
+          <button type="button" disabled={isSubmitting} onClick={handleRequestSubmit} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm transition active:scale-95">
+            {isSubmitting ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <CheckSquare className="h-3.5 w-3.5" />}
+            <span>{isSubmitting ? 'جارٍ التسليم...' : 'إنهاء وتسليم'}</span>
           </button>
         </div>
       </div>
