@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   User,
   Shield,
@@ -18,65 +20,52 @@ import { HomeworkResultsTab } from '@/features/account/HomeworkResultsTab';
 import { WatchHistoryTab } from '@/features/account/WatchHistoryTab';
 import { MistakesBankTab } from '@/features/account/MistakesBankTab';
 import { MobileAccountTabs } from '@/features/account/MobileAccountTabs';
-import type {
-  StudentProfile,
-  StudentStats,
-  EnrolledCourseItem,
-  InvoiceItem,
-  LoginSessionItem,
-} from '@/lib/data/student-profile-data';
-import type { StudentMistakeItem, ExamResultSummary, WatchHistoryItem } from '@/lib/data/exam-types';
+import type { StudentMistakeItem } from '@/lib/data/exam-types';
 import { DEFAULT_PROFILE, DEFAULT_STATS } from '@/features/account/account-mappers';
 import { loadStudentAccountData, deleteStudentMistakes } from '@/features/account/account-data-loader';
 
-export default function StudentAccountPage() {
-  const [activeTab, setActiveTab] = useState<AccountTabId>('profile');
-  const [profile, setProfile] = useState<StudentProfile>(DEFAULT_PROFILE);
-  const [stats, setStats] = useState<StudentStats>(DEFAULT_STATS);
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourseItem[]>([]);
-  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
-  const [sessions, setSessions] = useState<LoginSessionItem[]>([]);
-  const [logoutsToday, setLogoutsToday] = useState(0);
-  const [logoutsThisWeek, setLogoutsThisWeek] = useState(0);
-  const [mistakes, setMistakes] = useState<StudentMistakeItem[]>([]);
-  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([]);
-  const [quizResults, setQuizResults] = useState<ExamResultSummary[]>([]);
-  const [homeworkResults, setHomeworkResults] = useState<ExamResultSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const VALID_TABS = new Set<string>(['profile', 'security', 'quizzes', 'homework', 'watch_history', 'mistakes']);
+
+function AccountPageContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<AccountTabId>(
+    (tabParam && VALID_TABS.has(tabParam)) ? (tabParam as AccountTabId) : 'profile'
+  );
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      try {
-        const bundle = await loadStudentAccountData();
-        if (isMounted) {
-          setProfile(bundle.profile);
-          setStats(bundle.stats);
-          setEnrolledCourses(bundle.enrolledCourses);
-          setInvoices(bundle.invoices);
-          setSessions(bundle.sessions);
-          setLogoutsToday(bundle.logoutsToday);
-          setLogoutsThisWeek(bundle.logoutsThisWeek);
-          setMistakes(bundle.mistakes);
-          setWatchHistory(bundle.watchHistory);
-          setQuizResults(bundle.quizResults);
-          setHomeworkResults(bundle.homeworkResults);
-        }
-      } catch {
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
+    if (tabParam && VALID_TABS.has(tabParam)) {
+      setActiveTab(tabParam as AccountTabId);
     }
-    loadData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [tabParam]);
+
+  const { data: bundle, isLoading } = useQuery({
+    queryKey: ['student-account-data'],
+    queryFn: loadStudentAccountData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const profile = bundle?.profile || DEFAULT_PROFILE;
+  const stats = bundle?.stats || DEFAULT_STATS;
+  const enrolledCourses = bundle?.enrolledCourses || [];
+  const invoices = bundle?.invoices || [];
+  const sessions = bundle?.sessions || [];
+  const logoutsToday = bundle?.logoutsToday || 0;
+  const logoutsThisWeek = bundle?.logoutsThisWeek || 0;
+  const mistakes = bundle?.mistakes || [];
+  const watchHistory = bundle?.watchHistory || [];
+  const quizResults = bundle?.quizResults || [];
+  const homeworkResults = bundle?.homeworkResults || [];
 
   const handleMistakesUpdated = async (updated: StudentMistakeItem[]) => {
     const remainingIds = new Set(updated.map((m) => m.id));
     const removedIds = mistakes.filter((m) => !remainingIds.has(m.id)).map((m) => m.id);
-    setMistakes(updated);
+    if (bundle) {
+      queryClient.setQueryData(['student-account-data'], { ...bundle, mistakes: updated });
+    }
     if (removedIds.length > 0) {
       try {
         await deleteStudentMistakes(removedIds);
@@ -105,7 +94,7 @@ export default function StudentAccountPage() {
         onSelectTab={(id) => setActiveTab(id)}
       />
 
-      {/* Desktop Tabs navigation bar (hidden on mobile, visible on md+) */}
+      {/* Desktop Tabs navigation bar */}
       <div className="hidden md:block rounded-2xl border border-slate-200 bg-white p-1.5 sm:p-2 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20]">
         <div className="flex items-center gap-1.5">
           {tabsConfig.map((tab) => {
@@ -182,5 +171,17 @@ export default function StudentAccountPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function StudentAccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-xs font-bold text-slate-400 dark:border-teal-500/20 dark:bg-[#091D20]">
+        جاري تحميل بيانات حسابك التعليمي من المنصة...
+      </div>
+    }>
+      <AccountPageContent />
+    </Suspense>
   );
 }

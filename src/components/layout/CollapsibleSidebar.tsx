@@ -19,7 +19,7 @@ interface CollapsibleSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'الرئيسية', icon: LayoutGrid },
+  { href: '/dashboard', label: 'لوحة التحكم', icon: LayoutGrid },
   { href: '/courses', label: 'الكورسات', icon: BookOpen },
   { href: '/forum', label: 'المنتدى', icon: Users },
   { href: '/account', label: 'حسابي', icon: User },

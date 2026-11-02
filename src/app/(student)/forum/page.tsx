@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Users, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ForumTabId } from '@/features/forum/forum-types';
 import { ForumPostCard } from '@/features/forum/ForumPostCard';
 import { NewQuestionModal } from '@/features/forum/NewQuestionModal';
@@ -14,27 +15,25 @@ const PAGE_SIZE = 10;
 export default function StudentForumPage() {
   const [activeTab, setActiveTab] = useState<ForumTabId>('private');
   const [currentPage, setCurrentPage] = useState(1);
-  const [posts, setPosts] = useState<ForumPostItem[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [todayQuestionsCount, setTodayQuestionsCount] = useState(0);
   const [successToast, setSuccessToast] = useState('');
+  const queryClient = useQueryClient();
 
-  const MAX_DAILY_QUESTIONS = 5;
-  const remainingToday = Math.max(0, MAX_DAILY_QUESTIONS - todayQuestionsCount);
+  const { data: forumData } = useQuery({
+    queryKey: ['student-forum-questions'],
+    queryFn: async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user || null;
 
-  const fetchForumQuestions = async () => {
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
+        const { data } = await supabase
+          .from('forum_questions')
+          .select('id, student_id, question_text, question_image_url, status, is_public, reply_text, reply_image_url, reply_voice_url, replied_at, created_at, profiles:student_id(full_name, grade_level)')
+          .order('created_at', { ascending: false });
 
-      const { data } = await supabase
-        .from('forum_questions')
-        .select('id, student_id, question_text, question_image_url, status, is_public, reply_text, reply_image_url, reply_voice_url, replied_at, created_at, profiles:student_id(full_name, grade_level)')
-        .order('created_at', { ascending: false });
+        if (!data) return { posts: [], todayCount: 0 };
 
-      if (data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapped: ForumPostItem[] = data.map((q: any) => {
           const isMine = q.student_id === user?.id;
@@ -60,23 +59,28 @@ export default function StudentForumPage() {
             } : undefined,
           };
         });
-        setPosts(mapped);
-        if (user) {
-          const userToday = mapped.filter((p) => p.isMine).length;
-          setTodayQuestionsCount(userToday);
-        }
-      }
-    } catch {}
-  };
 
-  useEffect(() => {
-    fetchForumQuestions();
-  }, []);
+        const todayCount = user ? mapped.filter((p) => p.isMine).length : 0;
+        return { posts: mapped, todayCount };
+      } catch {
+        return { posts: [], todayCount: 0 };
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const posts = forumData?.posts || [];
+  const todayQuestionsCount = forumData?.todayCount || 0;
+  const MAX_DAILY_QUESTIONS = 5;
+  const remainingToday = Math.max(0, MAX_DAILY_QUESTIONS - todayQuestionsCount);
 
   const handleAddNewQuestion = async (data: { title: string; text: string; imageBlobUrl?: string }) => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
 
       const { error } = await supabase.from('forum_questions').insert({
@@ -89,7 +93,7 @@ export default function StudentForumPage() {
       });
 
       if (!error) {
-        await fetchForumQuestions();
+        await queryClient.invalidateQueries({ queryKey: ['student-forum-questions'] });
         setIsModalOpen(false);
         setCurrentPage(1);
         setSuccessToast('تم إرسال سؤالك العلمي بنجاح، وسيقوم مستر عمار بالرد قريباً ✅');

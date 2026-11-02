@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { EnrolledCourseItem, InvoiceItem, LoginSessionItem, StudentStats } from '@/lib/data/student-profile-data';
-import type { StudentMistakeItem, ExamResultSummary, WatchHistoryItem, ExamQuestion } from '@/lib/data/exam-types';
+import type { StudentMistakeItem, ExamResultSummary, WatchHistoryItem } from '@/lib/data/exam-types';
 import {
   AccountDataBundle,
   DEFAULT_PROFILE,
@@ -12,7 +12,8 @@ import {
 
 export async function loadStudentAccountData(): Promise<AccountDataBundle> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) {
     return {
@@ -30,14 +31,53 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     };
   }
 
-  // 1. Fetch Profile
-  let profile = DEFAULT_PROFILE;
-  const { data: pData } = await supabase
-    .from('profiles')
-    .select('id, full_name, phone, parent_phone, grade_level, education_type, governorate, created_at')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Execute all independent queries in parallel via Promise.all
+  const [
+    profileRes,
+    dashRes,
+    invRes,
+    sessionRes,
+    attemptRes,
+    mistakeRes,
+    compRes,
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name, phone, parent_phone, grade_level, education_type, governorate, created_at')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase.rpc('get_student_dashboard_data'),
+    supabase
+      .from('student_invoices')
+      .select('id, amount, payment_method, status, created_at, courses:course_id(title)')
+      .eq('student_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('login_sessions')
+      .select('id, device_type, device_name, os_name, browser_name, logout_count_today, logout_count_week, last_active_at, created_at')
+      .eq('user_id', user.id)
+      .order('last_active_at', { ascending: false }),
+    supabase
+      .from('exam_attempts')
+      .select('id, exam_id, score, score_percentage, total_questions, solved_questions, correct_answers_count, started_at, submitted_at, passed, exams:exam_id(id, title, exam_type)')
+      .eq('student_id', user.id)
+      .in('status', ['submitted', 'expired_submitted'])
+      .order('submitted_at', { ascending: false }),
+    supabase
+      .from('student_mistakes_bank')
+      .select('id, question_id, exam_id, source_type, wrong_option, created_at, exam_questions:question_id(id, question_text, image_url, correct_option), exams:exam_id(title)')
+      .eq('student_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('lesson_completions')
+      .select('id, watched_duration_seconds, completed_at, lessons:lesson_id(title), courses:course_id(title)')
+      .eq('student_id', user.id)
+      .order('completed_at', { ascending: false }),
+  ]);
 
+  // 1. Map Profile
+  let profile = DEFAULT_PROFILE;
+  const pData = profileRes.data;
   if (pData) {
     profile = {
       name: pData.full_name || DEFAULT_PROFILE.name,
@@ -51,34 +91,25 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     };
   }
 
-  // 2. Fetch Dashboard RPC & Enrolled Courses
+  // 2. Map Dashboard RPC & Enrolled Courses
   let enrolledCourses: EnrolledCourseItem[] = [];
-  try {
-    const { data: dashData } = await supabase.rpc('get_student_dashboard_data');
-    if (dashData?.enrolled_courses) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      enrolledCourses = dashData.enrolled_courses.map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        grade: profile.grade,
-        status: c.is_temporary_activation ? 'temporary' : 'active',
-        statusLabel: c.is_temporary_activation ? 'تفعيل مؤقت قيد المراجعة' : 'مفعل نهائياً',
-        expiresAt: c.expires_at ? new Date(c.expires_at).toLocaleDateString('ar-EG') : 'طوال العام الدراسي',
-        progress: 0,
-      }));
-    }
-  } catch {}
+  const dashData = dashRes.data;
+  if (dashData?.enrolled_courses) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    enrolledCourses = dashData.enrolled_courses.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      grade: profile.grade,
+      status: c.is_temporary_activation ? 'temporary' : 'active',
+      statusLabel: c.is_temporary_activation ? 'تفعيل مؤقت قيد المراجعة' : 'مفعل نهائياً',
+      expiresAt: c.expires_at ? new Date(c.expires_at).toLocaleDateString('ar-EG') : 'طوال العام الدراسي',
+      progress: 0,
+    }));
+  }
 
-  // 3. Fetch Invoices
+  // 3. Map Invoices
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: invRows } = await supabase
-    .from('student_invoices')
-    .select('id, amount, payment_method, status, created_at, courses:course_id(title)')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const invoices: InvoiceItem[] = (invRows || []).map((inv: any) => ({
+  const invoices: InvoiceItem[] = (invRes.data || []).map((inv: any) => ({
     id: inv.id,
     courseTitle: inv.courses?.title || 'اشتراك تعليمي',
     amount: `${Number(inv.amount || 0)} ج.م`,
@@ -87,18 +118,11 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     status: inv.status === 'approved' ? 'مفعل نهائياً' : 'تفعيل مؤقت قيد المراجعة',
   }));
 
-  // 4. Fetch Login Sessions
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: sessionRows } = await supabase
-    .from('login_sessions')
-    .select('id, device_type, device_name, os_name, browser_name, logout_count_today, logout_count_week, last_active_at, created_at')
-    .eq('user_id', user.id)
-    .order('last_active_at', { ascending: false });
-
+  // 4. Map Login Sessions
   let logoutsToday = 0;
   let logoutsThisWeek = 0;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sessions: LoginSessionItem[] = (sessionRows || []).map((s: any) => {
+  const sessions: LoginSessionItem[] = (sessionRes.data || []).map((s: any) => {
     logoutsToday = Math.max(logoutsToday, s.logout_count_today || 0);
     logoutsThisWeek = Math.max(logoutsThisWeek, s.logout_count_week || 0);
     return {
@@ -112,20 +136,11 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     };
   });
 
-  // 5. Fetch Exam Attempts
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: attemptRows } = await supabase
-    .from('exam_attempts')
-    .select('id, exam_id, score, score_percentage, total_questions, solved_questions, correct_answers_count, started_at, submitted_at, passed, exams:exam_id(id, title, exam_type)')
-    .eq('student_id', user.id)
-    .in('status', ['submitted', 'expired_submitted'])
-    .order('submitted_at', { ascending: false });
-
+  // 5. Map Exam Attempts
   const quizResults: ExamResultSummary[] = [];
   const homeworkResults: ExamResultSummary[] = [];
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (attemptRows || []).forEach((row: any) => {
+  (attemptRes.data || []).forEach((row: any) => {
     const summary: ExamResultSummary = {
       id: row.id,
       examName: row.exams?.title || 'امتحان',
@@ -146,16 +161,9 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     }
   });
 
-  // 6. Fetch Mistakes Bank
+  // 6. Map Mistakes Bank
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: mistakeRows } = await supabase
-    .from('student_mistakes_bank')
-    .select('id, question_id, exam_id, source_type, wrong_option, created_at, exam_questions:question_id(id, question_text, image_url, correct_option), exams:exam_id(title)')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mistakes: StudentMistakeItem[] = (mistakeRows || []).map((m: any) => {
+  const mistakes: StudentMistakeItem[] = (mistakeRes.data || []).map((m: any) => {
     const q = m.exam_questions;
     return {
       id: m.id,
@@ -171,16 +179,9 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     };
   });
 
-  // 7. Fetch Watch History
+  // 7. Map Watch History
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: compRows } = await supabase
-    .from('lesson_completions')
-    .select('id, watched_duration_seconds, completed_at, lessons:lesson_id(title), courses:course_id(title)')
-    .eq('student_id', user.id)
-    .order('completed_at', { ascending: false });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const watchHistory: WatchHistoryItem[] = (compRows || []).map((c: any) => ({
+  const watchHistory: WatchHistoryItem[] = (compRes.data || []).map((c: any) => ({
     id: c.id,
     videoTitle: c.lessons?.title || 'محاضرة تعليمية',
     courseTitle: c.courses?.title || 'كورس الأحياء',
@@ -217,4 +218,3 @@ export async function deleteStudentMistakes(mistakeIds: string[]): Promise<boole
   const { error } = await supabase.from('student_mistakes_bank').delete().in('id', mistakeIds);
   return !error;
 }
-

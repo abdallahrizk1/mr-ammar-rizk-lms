@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BookOpen, RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { CoursesFilterType } from '@/features/courses/courses-types';
 import { CourseCard } from '@/features/courses/CourseCard';
 import { CourseItem } from '@/lib/data/courses-types';
@@ -10,67 +11,63 @@ import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
 export default function StudentCoursesPage() {
   const [filter, setFilter] = useState<CoursesFilterType>('my_courses');
-  const [coursesList, setCoursesList] = useState<CourseItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchCoursesFromSupabase = async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const coursesPromise = supabase
-        .from('courses')
-        .select('*')
-        .eq('is_published', true)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+  const { data: coursesList = [], isLoading } = useQuery<CourseItem[]>({
+    queryKey: ['student-courses-list'],
+    queryFn: async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const coursesPromise = supabase
+          .from('courses')
+          .select('*')
+          .eq('is_published', true)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
 
-      const enrollmentsPromise = session
-        ? supabase.from('course_enrollments').select('course_id, status').eq('status', 'active')
-        : Promise.resolve({ data: [] });
+        const enrollmentsPromise = session
+          ? supabase.from('course_enrollments').select('course_id, status').eq('status', 'active')
+          : Promise.resolve({ data: [] });
 
-      const [coursesRes, enrollmentsRes] = await Promise.all([coursesPromise, enrollmentsPromise]);
+        const [coursesRes, enrollmentsRes] = await Promise.all([coursesPromise, enrollmentsPromise]);
 
-      const stored = getStoredEnrolledCourses();
-      const enrolledSet = new Set<string>();
+        const stored = getStoredEnrolledCourses();
+        const enrolledSet = new Set<string>();
 
-      if (enrollmentsRes.data) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        enrollmentsRes.data.forEach((e: any) => enrolledSet.add(e.course_id));
+        if (enrollmentsRes.data) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          enrollmentsRes.data.forEach((e: any) => enrolledSet.add(e.course_id));
+        }
+        stored.forEach((s) => enrolledSet.add(s.id));
+
+        if (coursesRes.data && coursesRes.data.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return coursesRes.data.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            tagline: c.description || 'منهج الأحياء للثانوية العامة 2027',
+            description: c.description || '',
+            grade: `الصف ${c.grade_level} الثانوي`,
+            price: c.price,
+            priceFormatted: c.price === 0 ? 'مجاني' : `${c.price} ج.م`,
+            isComprehensive: !!c.is_bundle,
+            isEnrolled: enrolledSet.has(c.id),
+            isTemporary: false,
+            progress: 0,
+            bannerImage: c.thumbnail_url || c.banner_image_url || '/images/teacher-circle.png',
+            lecturesCount: 12,
+            modules: [],
+          }));
+        }
+        return [];
+      } catch {
+        return [];
       }
-      stored.forEach((s) => enrolledSet.add(s.id));
-
-      if (coursesRes.data && coursesRes.data.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped: CourseItem[] = coursesRes.data.map((c: any) => ({
-          id: c.id,
-          title: c.title,
-          tagline: c.description || 'منهج الأحياء للثانوية العامة 2027',
-          description: c.description || '',
-          grade: `الصف ${c.grade_level} الثانوي`,
-          price: c.price,
-          priceFormatted: c.price === 0 ? 'مجاني' : `${c.price} ج.م`,
-          isComprehensive: !!c.is_bundle,
-          isEnrolled: enrolledSet.has(c.id),
-          isTemporary: false,
-          progress: 0,
-          bannerImage: c.thumbnail_url || c.banner_image_url || '/images/teacher-circle.png',
-          lecturesCount: 12,
-          modules: [],
-        }));
-        setCoursesList(mapped);
-      } else {
-        setCoursesList([]);
-      }
-    } catch {
-      setCoursesList([]);
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchCoursesFromSupabase();
-  }, []);
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
   // Filter 1: كورساتي (Enrolled courses; if enrolled in comprehensive, show 1 unified card without repeating chapters)
   // Filter 2: جميع الكورسات (All courses)
