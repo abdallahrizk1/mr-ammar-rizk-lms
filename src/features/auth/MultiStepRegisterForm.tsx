@@ -116,8 +116,8 @@ export function MultiStepRegisterForm() {
   return (
     <div dir="rtl" className="mx-auto w-full max-w-md sm:max-w-lg rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 text-slate-900 shadow-lg dark:border-teal-500/25 dark:bg-[#0D2628] dark:shadow-2xl dark:shadow-black/50 dark:text-white transition-colors">
       <div className="mb-3 text-center">
-        <h1 className="text-lg sm:text-xl font-black text-bio-teal dark:text-emerald-400">انضم لدفعة 2027 🧬</h1>
-        <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">سجل حسابك في منصة مستر عمار رزق للأحياء</p>
+        <h1 className="text-lg sm:text-xl font-black text-bio-teal dark:text-emerald-400">انضم لدفعة 2027</h1>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">سجل حسابك في منصة مستر عمار رزق</p>
       </div>
 
       {errors.submit && (
@@ -226,7 +226,7 @@ export function MultiStepRegisterForm() {
 
       <p className="mt-3.5 text-center text-xs text-slate-500 dark:text-slate-400">
         لديك حساب بالفعل؟{' '}
-        <Link prefetch={false} href="/login" className="font-bold text-bio-teal hover:underline dark:text-emerald-400">
+        <Link prefetch={false} href="/login" className="font-bold text-bio-teal hover:text-bio-deep dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
           تسجيل الدخول هنا
         </Link>
       </p>

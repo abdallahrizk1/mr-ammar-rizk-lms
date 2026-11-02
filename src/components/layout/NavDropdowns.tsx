@@ -34,7 +34,7 @@ export function NotificationsMenu({
           <button
             type="button"
             onClick={onMarkAllRead}
-            className="flex items-center gap-1 text-[11px] font-semibold text-bio-teal hover:underline dark:text-emerald-400"
+            className="flex items-center gap-1 text-[11px] font-semibold text-bio-teal hover:text-bio-deep dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
           >
             <CheckCheck className="h-3 w-3" />
             <span>تحديد الكل كمقروء</span>

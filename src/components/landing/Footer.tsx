@@ -114,7 +114,7 @@ export function Footer() {
                 <Link
                   href="/terms"
                   prefetch={false}
-                  className="text-[11px] font-medium text-rose-500 hover:text-rose-600 hover:underline transition"
+                  className="text-[11px] font-medium text-rose-500 hover:text-rose-600 transition-colors"
                 >
                   Terms and Condition
                 </Link>

@@ -4,8 +4,8 @@ import { MultiStepRegisterForm } from '@/features/auth/MultiStepRegisterForm';
 import { Footer } from '@/components/landing/Footer';
 
 export const metadata = {
-  title: 'حساب جديد | منصة مستر عمار رزق للأحياء',
-  description: 'انضم الآن لدفعة التفوق في مادة الأحياء مع مستر عمار رزق للثانوية العامة',
+  title: 'حساب جديد | منصة مستر عمار رزق',
+  description: 'انضم الآن لدفعة التفوق في العلوم والعلوم المتكاملة مع مستر عمار رزق',
 };
 
 export default function RegisterPage() {

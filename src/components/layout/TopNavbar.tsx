@@ -22,7 +22,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [studentName, setStudentName] = useState('طالب منصة عمار');
+  const [studentName, setStudentName] = useState('طالب المنصة');
 
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -87,15 +87,15 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
 
   return (
     <>
-      <header ref={navRef} className="sticky top-0 z-40 w-full pt-3 sm:pt-2 px-3 sm:px-6 max-w-7xl mx-auto">
-        <div className="flex h-12 sm:h-14 items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2.5 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
-          <div className="flex items-center gap-2 shrink-0">
+      <header ref={navRef} className="sticky top-0 z-40 w-full pt-2 sm:pt-2 px-2 sm:px-6 max-w-7xl mx-auto">
+        <div className="flex h-12 sm:h-14 items-center justify-between gap-1.5 sm:gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isLoggedIn && (
               <button
                 type="button"
                 onClick={() => setIsMobileDrawerOpen(true)}
                 aria-label="فتح القائمة الجانبية"
-                className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl bg-bio-teal/10 hover:bg-bio-teal/20 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400 border border-bio-teal/20 transition active:scale-95"
+                className="flex md:hidden h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-bio-teal/10 hover:bg-bio-teal/20 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400 border border-bio-teal/20 transition active:scale-95"
               >
                 <Menu className="h-4 w-4" />
               </button>
@@ -110,31 +110,31 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
             </Link>
           </div>
 
-          <div className="flex md:hidden items-center justify-center">
+          <div className="flex md:hidden items-center justify-center shrink min-w-0">
             <Link href="/" prefetch={false} className="flex items-center">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
-                className="h-7 w-auto object-contain"
+                className="h-6 sm:h-7 w-auto max-w-[80px] object-contain"
               />
             </Link>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               type="button"
               dir="ltr"
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
               aria-label="تبديل الوضع الليلي والنهاري"
-              className="relative inline-flex h-7 w-[54px] shrink-0 cursor-pointer items-center rounded-full bg-slate-200/90 p-0.5 transition-colors dark:bg-[#040D0E] dark:border dark:border-teal-500/30 focus:outline-none"
+              className="relative inline-flex h-7 w-[50px] shrink-0 cursor-pointer items-center rounded-full bg-slate-200/90 border border-slate-300/80 p-0.5 transition-colors dark:bg-[#040D0E] dark:border-teal-500/40 focus:outline-none overflow-hidden"
             >
-              <div className="flex w-full items-center justify-between px-1.5 text-xs">
+              <div className="flex w-full items-center justify-between px-1.5 text-xs select-none">
                 <Sun className={`h-3 w-3 transition-colors ${!isDark ? 'text-amber-500' : 'text-slate-400'}`} />
                 <Moon className={`h-3 w-3 transition-colors ${isDark ? 'text-emerald-400' : 'text-slate-400'}`} />
               </div>
               <span
-                className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out dark:bg-emerald-500 ${
-                  isDark ? 'translate-x-[26px]' : 'translate-x-0'
+                className={`absolute top-[3px] left-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out dark:bg-emerald-500 ${
+                  isDark ? 'translate-x-[22px]' : 'translate-x-0'
                 }`}
               />
             </button>

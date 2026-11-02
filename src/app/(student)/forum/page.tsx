@@ -136,7 +136,7 @@ export default function StudentForumPage() {
             <span>المنتدى العلمي وغرفة الأسئلة الخاصة</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-teal-200/60 mt-0.5">
-            تواصل مباشرة مع مستر عمار رزق واحصل على إجابات نصية وصوتية متخصصة
+            تواصل معنا واحصل على إجابات تفصيلية لكل سؤال
           </p>
         </div>
 

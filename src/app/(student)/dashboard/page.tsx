@@ -36,13 +36,11 @@ export default function StudentDashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const profile = dashboardData?.profile;
   const stats = dashboardData?.student_stats || { mistakes_count: 0, completed_lessons_count: 0 };
   const enrolledCourses = (dashboardData?.enrolled_courses && dashboardData.enrolled_courses.length > 0)
     ? dashboardData.enrolled_courses
     : localCourses;
   const recentExams = dashboardData?.recent_exam_attempts || [];
-  const greetingName = profile?.full_name || 'طالب منصة عمار';
 
   return (
     <div className="space-y-3 sm:space-y-4" dir="rtl">
@@ -131,9 +129,6 @@ export default function StudentDashboardPage() {
               </div>
             </div>
           </div>
-          <p className="mt-1.5 text-[10px] sm:text-[11px] text-slate-400 dark:text-teal-200/60 text-center">
-            {greetingName ? `مرحباً بك يا ${greetingName} في منصة الأحياء 🧬` : '*تابع محاضراتك يومياً لتسجيل أعلى معدل تفوق!'}
-          </p>
         </div>
 
         {/* Left (1/3): "تقدمك" Card */}
@@ -207,7 +202,7 @@ export default function StudentDashboardPage() {
             <Link
               href="/courses"
               prefetch={false}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-bio-teal hover:underline dark:text-emerald-400"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-bio-teal hover:text-bio-deep dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
             >
               استكشف الكورسات المتاحة واشترك الآن 🚀
             </Link>

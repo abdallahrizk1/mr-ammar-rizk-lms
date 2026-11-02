@@ -141,7 +141,7 @@ export function ReceiptReviewTable() {
                     <button
                       type="button"
                       onClick={() => setPreviewImage(r.receipt_image_r2_path)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-bio-teal dark:text-emerald-400 hover:underline"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-bio-teal dark:text-emerald-400 hover:text-bio-deep dark:hover:text-emerald-300 transition-colors"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       <span>معاينة</span>

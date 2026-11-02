@@ -28,7 +28,7 @@ export interface AccountDataBundle {
 }
 
 export const DEFAULT_PROFILE: StudentProfile = {
-  name: 'طالب منصة الأحياء',
+  name: 'طالب المنصة',
   memberSince: 'جديد',
   memberDate: 'أكتوبر 2026',
   phone: '01000000000',
