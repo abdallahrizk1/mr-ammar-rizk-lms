@@ -34,6 +34,14 @@ export async function getUploadPresignedUrlAction({
       };
     }
 
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedMimeTypes.includes(contentType)) {
+      return {
+        success: false,
+        error: 'نوع الملف غير مدعوم، يرجى رفع صورة صالحة (JPG, PNG, WebP)',
+      };
+    }
+
     const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const objectKey = `${folder}/${Date.now()}-${sanitized}`;
 

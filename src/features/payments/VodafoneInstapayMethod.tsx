@@ -115,8 +115,17 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
       }
 
       const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user) {
+        setErrorMsg('يجب تسجيل الدخول أولاً لإتمام تفعيل الكورس');
+        setIsSubmitting(false);
+        return;
+      }
+
       if (courseId) {
         const { error: insertErr } = await supabase.from('payment_receipts').insert({
+          student_id: user.id,
           course_id: courseId,
           amount: coursePrice || 350,
           sender_phone: cleanPhone,

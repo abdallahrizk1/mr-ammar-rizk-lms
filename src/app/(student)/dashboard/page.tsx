@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { CheckSquare, Lightbulb, Bookmark, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
 export default function StudentDashboardPage() {
+  const router = useRouter();
   const [localCourses, setLocalCourses] = useState<any[]>([]);
 
   useEffect(() => {
@@ -195,6 +197,8 @@ export default function StudentDashboardPage() {
                 <Link
                   href={`/courses/${c.id || c.course_id}`}
                   prefetch={false}
+                  onMouseEnter={() => router.prefetch(`/courses/${c.id || c.course_id}`)}
+                  onTouchStart={() => router.prefetch(`/courses/${c.id || c.course_id}`)}
                   className="w-full sm:w-auto text-center rounded-xl bg-[#134647] hover:bg-bio-teal dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white px-3.5 py-1 text-xs font-bold shadow-sm transition active:scale-95"
                 >
                   متابعة المشاهدة
@@ -209,6 +213,8 @@ export default function StudentDashboardPage() {
             <Link
               href="/courses"
               prefetch={false}
+              onMouseEnter={() => router.prefetch('/courses')}
+              onTouchStart={() => router.prefetch('/courses')}
               className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-bio-teal hover:underline dark:text-emerald-400"
             >
               استكشف الكورسات المتاحة واشترك الآن 🚀

@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, PlayCircle, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Clock, PlayCircle, CreditCard, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { CourseItem } from '@/lib/data/courses-types';
 
 interface CourseCardProps {
@@ -12,6 +12,7 @@ interface CourseCardProps {
 
 export function CourseCard({ course }: CourseCardProps) {
   const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-teal-500/20 dark:bg-[#091D20] transition hover:shadow-md">
       <div>
@@ -79,23 +80,25 @@ export function CourseCard({ course }: CourseCardProps) {
           <Link
             href={`/courses/${course.id}`}
             prefetch={false}
+            onClick={() => setIsNavigating(true)}
             onMouseEnter={() => router.prefetch(`/courses/${course.id}`)}
             onTouchStart={() => router.prefetch(`/courses/${course.id}`)}
             className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-bio-teal hover:bg-bio-deep dark:bg-emerald-600 dark:hover:bg-emerald-500 py-2 text-xs font-bold text-white shadow-sm transition active:scale-95"
           >
-            <PlayCircle className="h-4 w-4" />
-            <span>متابعة محتوى الكورس</span>
+            {isNavigating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+            <span>{isNavigating ? 'جارٍ التحميل...' : 'متابعة محتوى الكورس'}</span>
           </Link>
         ) : (
           <Link
             href={`/courses/${course.id}/subscribe`}
             prefetch={false}
+            onClick={() => setIsNavigating(true)}
             onMouseEnter={() => router.prefetch(`/courses/${course.id}/subscribe`)}
             onTouchStart={() => router.prefetch(`/courses/${course.id}/subscribe`)}
             className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#134647] hover:bg-bio-teal dark:bg-emerald-600 dark:hover:bg-emerald-500 py-2 text-xs font-bold text-white shadow-sm transition active:scale-95"
           >
-            <CreditCard className="h-4 w-4" />
-            <span>تفعيل الاشتراك الآن</span>
+            {isNavigating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+            <span>{isNavigating ? 'جارٍ التحميل...' : 'تفعيل الاشتراك الآن'}</span>
           </Link>
         )}
       </div>

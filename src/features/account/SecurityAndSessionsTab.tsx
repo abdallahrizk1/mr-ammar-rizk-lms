@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Shield, Smartphone, Laptop, Lock, CheckCircle2, AlertTriangle, History, KeyRound, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoginSessionItem } from '@/lib/data/student-profile-data';
-import { normalizeDigits } from '@/lib/utils/input-normalizer';
+import { normalizeDigits, phoneToVirtualEmail } from '@/lib/utils/input-normalizer';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 
 interface SecurityAndSessionsTabProps {
@@ -52,12 +52,13 @@ export function SecurityAndSessionsTab({
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
+      const email = user?.email || (user?.phone ? phoneToVirtualEmail(user.phone) : (user?.user_metadata?.phone ? phoneToVirtualEmail(user.user_metadata.phone) : ''));
+      if (!email) {
         setStatusMsg({ type: 'error', text: 'تعذر التحقق من جلسة المستخدم' });
         return;
       }
       const { error: verifyErr } = await supabase.auth.signInWithPassword({
-        email: user.email,
+        email,
         password: currentPassword,
       });
       if (verifyErr) {

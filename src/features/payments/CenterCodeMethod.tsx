@@ -17,6 +17,7 @@ export function CenterCodeMethod({ onSuccess }: CenterCodeMethodProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isVerifying) return;
     const cleanCode = normalizeActivationCode(code);
     if (!cleanCode || cleanCode.length < 6) {
       setErrorMsg('يرجى إدخال كود سنتر صالح (6 خانات أو أكثر)');

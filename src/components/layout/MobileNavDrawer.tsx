@@ -86,6 +86,8 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
                   href={item.href}
                   prefetch={false}
                   onClick={onClose}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  onTouchStart={() => router.prefetch(item.href)}
                   className={`flex items-center gap-3 rounded-xl p-2.5 text-xs sm:text-sm font-bold transition ${
                     isActive
                       ? 'bg-bio-teal text-white shadow-sm dark:bg-emerald-600'

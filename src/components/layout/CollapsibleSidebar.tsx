@@ -78,6 +78,8 @@ export function CollapsibleSidebar({ className = '', onLogout }: CollapsibleSide
                 href={item.href}
                 prefetch={false}
                 title={item.label}
+                onMouseEnter={() => router.prefetch(item.href)}
+                onTouchStart={() => router.prefetch(item.href)}
                 className={`flex items-center gap-2.5 rounded-xl p-2.5 text-xs sm:text-sm font-bold transition ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-sm'
