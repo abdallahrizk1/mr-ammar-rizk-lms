@@ -250,3 +250,223 @@ test('Middleware: enforces assistant RBAC permissions correctly', async () => {
   assert.ok(forbiddenRes.headers.get('location')?.includes('/admin/unauthorized'));
 });
 
+test('Middleware: permits unauthenticated access to /, /login, and /register with 200', async () => {
+  for (const path of ['/', '/login', '/register']) {
+    const req = new NextRequest(`http://localhost:3000${path}`);
+    const res = await middleware(req);
+    assert.equal(res.status, 200, `Expected 200 for ${path}`);
+  }
+});
+
+test('Middleware: redirects authenticated student on /, /login, /register to /dashboard with 307', async () => {
+  const studentJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-auth-redirect-1',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: studentJwt });
+
+  for (const path of ['/', '/login', '/register']) {
+    const req = new NextRequest(`http://localhost:3000${path}`, {
+      headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+    });
+    const res = await middleware(req);
+    assert.equal(res.status, 307, `Expected 307 for ${path}`);
+    assert.ok(res.headers.get('location')?.endsWith('/dashboard'), `Expected redirect to /dashboard for ${path}`);
+  }
+});
+
+test('Middleware: respects redirect param for authenticated student but ignores auth pages', async () => {
+  const studentJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-auth-redirect-2',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: studentJwt });
+
+  // 1. Valid custom redirect param -> redirects to /courses
+  const customReq = new NextRequest('http://localhost:3000/login?redirect=%2Fcourses', {
+    headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+  });
+  const customRes = await middleware(customReq);
+  assert.equal(customRes.status, 307);
+  assert.ok(customRes.headers.get('location')?.endsWith('/courses'));
+
+  // 2. Auth redirect param (e.g. /login or /) -> falls back to /dashboard
+  const selfReq = new NextRequest('http://localhost:3000/login?redirect=%2Flogin', {
+    headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+  });
+  const selfRes = await middleware(selfReq);
+  assert.equal(selfRes.status, 307);
+  assert.ok(selfRes.headers.get('location')?.endsWith('/dashboard'));
+});
+
+test('Middleware: redirects authenticated admin/assistant on /, /login, /register to /admin with 307', async () => {
+  const adminJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'admin-auth-redirect-1',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'admin' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: adminJwt });
+
+  for (const path of ['/', '/login', '/register']) {
+    const req = new NextRequest(`http://localhost:3000${path}`, {
+      headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+    });
+    const res = await middleware(req);
+    assert.equal(res.status, 307, `Expected 307 for ${path}`);
+    assert.ok(res.headers.get('location')?.endsWith('/admin'), `Expected redirect to /admin for ${path}`);
+  }
+});
+
+test('Middleware: permits access to / for visitor with expired student token', async () => {
+  const expiredJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-expired-1',
+      exp: Math.floor(Date.now() / 1000) - 300,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: expiredJwt });
+  const req = new NextRequest('http://localhost:3000/', {
+    headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+  });
+  const res = await middleware(req);
+  assert.equal(res.status, 200);
+});
+
+test('Middleware: redirects to /admin on / when both student and admin cookies coexist', async () => {
+  const studentJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-coexist-1',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const adminJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'admin-coexist-1',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'super_admin' },
+    }
+  );
+
+  const studentCookie = encodeToSupabaseCookie({ access_token: studentJwt });
+  const adminCookie = encodeToSupabaseCookie({ access_token: adminJwt });
+
+  const req = new NextRequest('http://localhost:3000/', {
+    headers: {
+      cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${studentCookie}; sb-icgggnrrtkaoqsfbwqnf-auth-token.0=${adminCookie}`,
+    },
+  });
+
+  const res = await middleware(req);
+  assert.equal(res.status, 307);
+  assert.ok(res.headers.get('location')?.endsWith('/admin'));
+});
+
+test('Middleware: safely decodes quoted base64- cookie without corrupting payload', async () => {
+  const studentJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-quoted-base64',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: studentJwt });
+  const quoted = `"${cookieValue}"`;
+
+  const req = new NextRequest('http://localhost:3000/', {
+    headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${quoted}` },
+  });
+  const res = await middleware(req);
+  assert.equal(res.status, 307);
+  assert.ok(res.headers.get('location')?.endsWith('/dashboard'));
+});
+
+test('Middleware: handles trailing slashes on auth routes (/login/ and /register/)', async () => {
+  const studentJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-slash-test',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: studentJwt });
+
+  for (const path of ['/login/', '/register/', '/login///']) {
+    const req = new NextRequest(`http://localhost:3000${path}`, {
+      headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+    });
+    const res = await middleware(req);
+    assert.equal(res.status, 307, `Expected 307 redirect for ${path}`);
+    assert.ok(res.headers.get('location')?.endsWith('/dashboard'));
+  }
+});
+
+test('Middleware: prevents redirect loop on /login?redirect=/login/ or /register/ or /?test=1', async () => {
+  const studentJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'student-loop-prevention',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'student' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: studentJwt });
+
+  const loopUrls = [
+    'http://localhost:3000/login?redirect=%2Flogin%2F',
+    'http://localhost:3000/login?redirect=%2Fregister%2F',
+    'http://localhost:3000/login?redirect=%2F%3Ftest%3D1',
+    'http://localhost:3000/login?redirect=%2F%2Fevil.com',
+    'http://localhost:3000/login?redirect=%2F%5C%5Cevil.com',
+  ];
+
+  for (const url of loopUrls) {
+    const req = new NextRequest(url, {
+      headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+    });
+    const res = await middleware(req);
+    assert.equal(res.status, 307);
+    assert.ok(
+      res.headers.get('location')?.endsWith('/dashboard'),
+      `Expected safe fallback to /dashboard for malicious/loop url: ${url}`
+    );
+  }
+});
+
+test('Middleware: redirects admin to safe admin redirect destination', async () => {
+  const adminJwt = createMockJwt(
+    { alg: 'ES256', typ: 'JWT' },
+    {
+      sub: 'admin-redirect-param',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      app_metadata: { role: 'admin' },
+    }
+  );
+  const cookieValue = encodeToSupabaseCookie({ access_token: adminJwt });
+
+  const req = new NextRequest('http://localhost:3000/login?redirect=%2Fadmin%2Fpayments', {
+    headers: { cookie: `sb-icgggnrrtkaoqsfbwqnf-auth-token=${cookieValue}` },
+  });
+  const res = await middleware(req);
+  assert.equal(res.status, 307);
+  assert.ok(res.headers.get('location')?.endsWith('/admin/payments'));
+});
+
+

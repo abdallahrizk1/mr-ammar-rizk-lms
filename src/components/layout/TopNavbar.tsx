@@ -17,6 +17,8 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
   const router = useRouter();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [userLoggedIn, setUserLoggedIn] = useState(isLoggedIn);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -27,31 +29,39 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-    if (!isLoggedIn) return;
+    setUserLoggedIn(isLoggedIn);
+  }, [isLoggedIn]);
 
+  useEffect(() => {
+    setMounted(true);
     const supabase = createClient();
     const loadUserData = async () => {
       try {
-        const { data } = await supabase.auth.getUser();
-        if (data?.user?.user_metadata?.full_name) {
-          setStudentName(data.user.user_metadata.full_name);
-        }
-      } catch {}
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserLoggedIn(true);
+          const role = user.app_metadata?.role || user.user_metadata?.role || 'student';
+          setUserRole(role);
+          if (user.user_metadata?.full_name) {
+            setStudentName(user.user_metadata.full_name);
+          }
+          const { data } = await supabase
+            .from('notifications')
+            .select('id, title, body, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
 
-      try {
-        const { data } = await supabase
-          .from('notifications')
-          .select('id, title, body, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (data && data.length > 0) {
-          setNotifications(data as NotificationItem[]);
-          setHasUnreadNotifications(true);
+          if (data && data.length > 0) {
+            setNotifications(data as NotificationItem[]);
+            setHasUnreadNotifications(true);
+          }
+        } else if (!isLoggedIn) {
+          setUserLoggedIn(false);
+          setUserRole(null);
         }
       } catch {}
     };
+
     loadUserData();
   }, [isLoggedIn]);
 
@@ -82,15 +92,20 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
       await supabase.auth.signOut();
     } catch {}
     setIsProfileOpen(false);
+    setUserLoggedIn(false);
+    setUserRole(null);
     router.push('/login');
   };
+
+  const isStaff = userRole === 'admin' || userRole === 'super_admin' || userRole === 'assistant';
+  const logoHref = !userLoggedIn ? '/' : isStaff ? '/admin' : '/dashboard';
 
   return (
     <>
       <header ref={navRef} className="sticky top-0 z-40 w-full pt-3 sm:pt-2 px-3 sm:px-6 max-w-7xl mx-auto">
         <div className="flex h-12 sm:h-14 items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2.5 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
           <div className="flex items-center gap-2 shrink-0">
-            {isLoggedIn && (
+            {userLoggedIn && (
               <button
                 type="button"
                 onClick={() => setIsMobileDrawerOpen(true)}
@@ -101,7 +116,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
               </button>
             )}
 
-            <Link href="/" prefetch={false} className="hidden md:flex items-center shrink-0">
+            <Link href={logoHref} prefetch={false} className="hidden md:flex items-center shrink-0">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
@@ -111,7 +126,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
           </div>
 
           <div className="flex md:hidden items-center justify-center">
-            <Link href="/" prefetch={false} className="flex items-center">
+            <Link href={logoHref} prefetch={false} className="flex items-center">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
@@ -139,7 +154,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
               />
             </button>
 
-            {isLoggedIn ? (
+            {userLoggedIn ? (
               <div className="flex items-center gap-1.5 sm:gap-2 relative">
                 <button
                   type="button"
@@ -180,6 +195,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
                   studentName={studentName}
                   onClose={() => setIsProfileOpen(false)}
                   onLogout={handleLogout}
+                  isStaff={isStaff}
                 />
               </div>
             ) : (
