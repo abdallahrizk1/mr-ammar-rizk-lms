@@ -195,7 +195,7 @@ export function AdminLoginForm() {
 
       <div className="mt-6 border-t border-slate-100 pt-4 text-center text-xs text-slate-500 dark:border-teal-500/20 dark:text-slate-400">
         هل أنت طالب؟{' '}
-        <Link prefetch={false} href="/login" className="font-bold text-bio-teal hover:underline dark:text-emerald-400">
+        <Link prefetch={false} href="/login" className="font-bold text-bio-teal hover:text-bio-deep dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
           تسجيل دخول الطلاب من هنا
         </Link>
       </div>

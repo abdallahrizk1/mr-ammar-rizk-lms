@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Copy, Check, Upload, Send, AlertCircle, FileCheck, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { normalizePhoneNumber } from '@/lib/utils/input-normalizer';
+import { normalizePhoneNumber, normalizeDigits } from '@/lib/utils/input-normalizer';
 import { compressImageToWebp } from '@/lib/utils/image-compression';
 import { createClient } from '@/lib/supabase/client';
 import { getUploadPresignedUrlAction } from '@/app/actions/upload-actions';
@@ -39,26 +39,21 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
 
   const copyToClipboard = (text: string, type: 'wallet' | 'insta') => {
     navigator.clipboard.writeText(text);
-    if (type === 'wallet') {
-      setCopiedWallet(true);
-      setTimeout(() => setCopiedWallet(false), 2000);
-    } else {
-      setCopiedInsta(true);
-      setTimeout(() => setCopiedInsta(false), 2000);
-    }
+    const setter = type === 'wallet' ? setCopiedWallet : setCopiedInsta;
+    setter(true);
+    setTimeout(() => setter(false), 2000);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setIsCompressing(true);
       setErrorMsg('');
       const compressed = await compressImageToWebp(file, { maxSizeBytes: 500 * 1024 });
       setReceiptFile(compressed);
     } catch {
-      setErrorMsg('تعذر ضغط الصورة، يرجى اختيار ملف صورة صالح (JPG أو PNG أو WebP)');
+      setErrorMsg('تعذر معالجة الصورة، يرجى اختيار ملف صورة صالح (JPG أو PNG أو WebP)');
     } finally {
       setIsCompressing(false);
     }
@@ -69,18 +64,9 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
     if (isSubmitting) return;
 
     const cleanPhone = normalizePhoneNumber(senderPhone);
-    if (!cleanPhone || cleanPhone.length < 10) {
-      setErrorMsg('يرجى إدخال رقم الهاتف المحول منه بشكل صحيح');
-      return;
-    }
-    if (!transactionRef.trim()) {
-      setErrorMsg('يرجى إدخال الرقم المرجعي للعملية (الموجود بإيصال التحويل)');
-      return;
-    }
-    if (!receiptFile) {
-      setErrorMsg('يرجى رفع صورة إيصال التحويل لتأكيد العملية');
-      return;
-    }
+    if (!cleanPhone || cleanPhone.length < 10) return setErrorMsg('يرجى إدخال رقم الهاتف المحول منه بشكل صحيح');
+    if (!transactionRef.trim()) return setErrorMsg('يرجى إدخال الرقم المرجعي للعملية (الموجود بإيصال التحويل)');
+    if (!receiptFile) return setErrorMsg('يرجى رفع صورة إيصال التحويل لتأكيد العملية');
 
     setIsSubmitting(true);
     setErrorMsg('');
@@ -146,8 +132,7 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
         fileName: receiptFile.name,
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'حدث خطأ أثناء معالجة الطلب';
-      setErrorMsg(msg);
+      setErrorMsg(err instanceof Error ? err.message : 'حدث خطأ أثناء معالجة الطلب');
     } finally {
       setIsSubmitting(false);
     }
@@ -181,37 +166,58 @@ export function VodafoneInstapayMethod({ courseId, coursePrice, onSuccess }: Vod
 
       <div>
         <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">الرقم المحول منه</label>
-        <input type="tel" dir="ltr" value={senderPhone} onChange={(e) => { setSenderPhone(e.target.value); setErrorMsg(''); }} placeholder="010XXXXXXXX" className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white" />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">الرقم المرجعي للعملية (من رسالة فودافون أو إيصال إنستا باي)</label>
-        <input type="text" dir="ltr" value={transactionRef} onChange={(e) => { setTransactionRef(e.target.value); setErrorMsg(''); }} placeholder="Ref / Transaction ID" className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white" />
+        <input
+          type="tel"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={15}
+          autoComplete="off"
+          dir="ltr"
+          value={senderPhone}
+          onChange={(e) => {
+            const digitsOnly = normalizeDigits(e.target.value).replace(/\D/g, '').slice(0, 15);
+            setSenderPhone(digitsOnly);
+            setErrorMsg('');
+          }}
+          placeholder="010XXXXXXXX"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white"
+        />
       </div>
 
       <div>
         <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-          صورة إيصال التحويل (تُضغط تلقائياً لـ WebP لسرعة الإرسال)
+          الرقم المرجعي للعملية (من رسالة فودافون أو إيصال إنستا باي)
         </label>
+        <input
+          type="text"
+          dir="ltr"
+          value={transactionRef}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/[<>{}[\]\\\/`^~|]/g, '').slice(0, 50);
+            setTransactionRef(sanitized);
+            setErrorMsg('');
+          }}
+          placeholder="Ref / Transaction ID"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-base sm:text-sm text-left text-slate-900 placeholder-slate-400 focus:border-bio-teal focus:outline-none dark:border-teal-500/30 dark:bg-[#091D20] dark:text-white"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">صورة الإيصال</label>
         <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-teal-500/30 bg-slate-50 dark:bg-[#071719] p-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#0d2628] transition">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           {receiptFile ? (
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
               <FileCheck className="h-5 w-5" />
-              <span>تم اختيار وضغط الإيصال: {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)} KB)</span>
+              <span>تم اختيار الإيصال: {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)} KB)</span>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1 text-slate-500 dark:text-teal-200/60 text-xs">
               <Upload className="h-6 w-6 text-bio-teal dark:text-emerald-400 mb-1" />
               <span className="font-bold text-slate-700 dark:text-slate-200">
-                {isCompressing ? 'جارٍ ضغط الصورة تلقائياً...' : 'اضغط لاختيار صورة الإيصال'}
+                {isCompressing ? 'جارٍ معالجة الصورة...' : 'اضغط لاختيار صورة الإيصال'}
               </span>
-              <span className="text-[10px] text-slate-400">يدعم PNG و JPG ويتم ضغطها تحت 500KB</span>
+              <span className="text-[10px] text-slate-400">يدعم PNG و JPG و WebP</span>
             </div>
           )}
         </label>

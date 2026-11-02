@@ -54,7 +54,7 @@ export function MobileNavDrawer({ isOpen, onClose, studentName }: MobileNavDrawe
                 className="h-7 w-auto object-contain"
               />
               <span className="text-xs font-bold text-bio-teal dark:text-emerald-400">
-                منصة الأحياء
+                منصة مستر عمار رزق
               </span>
             </div>
             <button

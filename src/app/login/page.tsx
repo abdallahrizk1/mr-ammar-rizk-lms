@@ -4,8 +4,8 @@ import { LoginForm } from '@/features/auth/LoginForm';
 import { Footer } from '@/components/landing/Footer';
 
 export const metadata = {
-  title: 'تسجيل الدخول | منصة مستر عمار رزق للأحياء',
-  description: 'سجل دخولك الآن لمتابعة دروس ومراجعات مادة الأحياء مع مستر عمار رزق للثانوية العامة',
+  title: 'تسجيل الدخول | منصة مستر عمار رزق',
+  description: 'سجل دخولك الآن لمتابعة دروس ومراجعات العلوم والعلوم المتكاملة مع مستر عمار رزق',
 };
 
 export default function LoginPage() {

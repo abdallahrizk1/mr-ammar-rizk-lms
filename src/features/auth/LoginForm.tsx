@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Lock, Phone, LogIn, AlertCircle, HelpCircle, Shield, X, MessageSquare, Eye, EyeOff } from 'lucide-react';
+import { Lock, Phone, LogIn, AlertCircle, HelpCircle, X, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { normalizeDigits, normalizePhoneNumber, sanitizePhoneInput, phoneToVirtualEmail } from '@/lib/utils/input-normalizer';
 import { createClient } from '@/lib/supabase/client';
 
@@ -17,7 +17,6 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTurnstileVerified, setIsTurnstileVerified] = useState(true);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -106,8 +105,8 @@ export function LoginForm() {
         <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-bio-teal/15 text-bio-teal dark:bg-emerald-500/20 dark:text-emerald-400 shadow-inner">
           <LogIn className="h-5 w-5" />
         </div>
-        <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">تسجيل الدخول 🧬</h1>
-        <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">مرحباً بك مجدداً في منصة الأحياء</p>
+        <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">تسجيل الدخول</h1>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-teal-200/70">مرحباً بك</p>
       </div>
 
       {isLocked && (
@@ -149,7 +148,7 @@ export function LoginForm() {
             <button
               type="button"
               onClick={() => setIsForgotModalOpen(true)}
-              className="text-xs font-medium text-bio-teal hover:underline dark:text-emerald-400"
+              className="text-xs font-medium text-bio-teal hover:text-bio-deep dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
             >
               نسيت كلمة السر؟
             </button>
@@ -178,22 +177,14 @@ export function LoginForm() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-100/70 px-3 py-2 text-xs text-slate-700 dark:border-teal-500/20 dark:bg-[#071719] dark:text-slate-300">
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="turnstile" checked={isTurnstileVerified} onChange={(e) => setIsTurnstileVerified(e.target.checked)} className="h-4 w-4 shrink-0 rounded accent-bio-teal" />
-            <label htmlFor="turnstile" className="cursor-pointer select-none text-[11px] sm:text-xs leading-snug">أنا لست برنامج روبوت (حماية كلاود فلير)</label>
-          </div>
-          <Shield className="h-4 w-4 shrink-0 text-emerald-500" />
-        </div>
-
-        <button type="submit" disabled={isSubmitting || isLocked || !isTurnstileVerified} className="flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95 disabled:opacity-50">
+        <button type="submit" disabled={isSubmitting || isLocked} className="flex w-full items-center justify-center gap-2 rounded-xl bg-bio-teal dark:bg-emerald-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-bio-deep dark:hover:bg-emerald-500 active:scale-95 disabled:opacity-50">
           {isSubmitting ? 'جارٍ التحقق...' : 'دخول المنصة 🚀'}
         </button>
       </form>
 
       <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
         طالب جديد؟{' '}
-        <Link prefetch={false} href="/register" className="font-bold text-bio-teal hover:underline dark:text-emerald-400">إنشاء حساب جديد هنا</Link>
+        <Link prefetch={false} href="/register" className="font-bold text-bio-teal hover:text-bio-deep dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">إنشاء حساب جديد هنا</Link>
       </p>
 
       <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-teal-500/15 text-center">

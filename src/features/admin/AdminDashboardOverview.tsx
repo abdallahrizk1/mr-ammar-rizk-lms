@@ -110,7 +110,7 @@ export function AdminDashboardOverview() {
             </span>
             <span className="text-xs font-semibold text-slate-400">طالب</span>
           </div>
-          <Link prefetch={false} href="/admin/students" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline dark:text-blue-400">
+          <Link prefetch={false} href="/admin/students" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:opacity-80 transition-opacity dark:text-blue-400">
             <span>إدارة شؤون الطلاب</span>
             <ArrowUpRight className="h-3 w-3" />
           </Link>
@@ -130,7 +130,7 @@ export function AdminDashboardOverview() {
             </span>
             <span className="text-xs font-semibold text-amber-600/70">إيصال معلق</span>
           </div>
-          <Link prefetch={false} href="/admin/payments" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:underline dark:text-amber-400">
+          <Link prefetch={false} href="/admin/payments" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:opacity-80 transition-opacity dark:text-amber-400">
             <span>مراجعة وتفعيل الإيصالات</span>
             <ArrowUpRight className="h-3 w-3" />
           </Link>
@@ -150,7 +150,7 @@ export function AdminDashboardOverview() {
             </span>
             <span className="text-xs font-semibold text-rose-600/70">سؤال معلق</span>
           </div>
-          <Link prefetch={false} href="/admin/forum" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:underline dark:text-rose-400">
+          <Link prefetch={false} href="/admin/forum" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:opacity-80 transition-opacity dark:text-rose-400">
             <span>الرد صوتياً أو كتابياً</span>
             <ArrowUpRight className="h-3 w-3" />
           </Link>
@@ -170,7 +170,7 @@ export function AdminDashboardOverview() {
             </span>
             <span className="text-xs font-semibold text-slate-400">كورس</span>
           </div>
-          <Link prefetch={false} href="/admin/courses" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:underline dark:text-emerald-400">
+          <Link prefetch={false} href="/admin/courses" className="mt-3 flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:opacity-80 transition-opacity dark:text-emerald-400">
             <span>باني الكورسات والمحاضرات</span>
             <ArrowUpRight className="h-3 w-3" />
           </Link>

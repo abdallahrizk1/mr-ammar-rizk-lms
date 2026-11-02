@@ -12,17 +12,13 @@ export function HeroSection() {
           {/* Right Column: Copy & Actions */}
           <div className="lg:col-span-7 text-right">
             {/* Main Headline - Balanced & Legible across all laptop & phone screens */}
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-black leading-snug tracking-tight">
-              منصتك الأولى لتعلم
-              <br />
-              وفهم الأحياء
-              <br />
-              بأسلوب بسيط وممتع
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black leading-snug tracking-tight">
+              منصتك للعلوم والعلوم المتكاملة
             </h1>
 
             {/* Subtitle */}
             <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-teal-100/90 max-w-lg">
-              أهلاً بيك في بيتك التاني! سواء كنت في أولى، تانية، أو تالتة ثانوي، هنا هتلاقي كل اللي تحتاجه علشان تتفوق في الأحياء، وتفهمها صح، وتطبقها بسهولة.
+              سواء كنت تالتة إعدادي أو أولى ثانوي عام أو أزهر، هنا هتلاقي كل اللي تحتاجه عشان تتفوق في العلوم والعلوم المتكاملة.
             </p>
 
             {/* Mint CTA Button */}
