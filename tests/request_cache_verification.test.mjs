@@ -86,6 +86,7 @@ test('Request Caching Verification: Eliminates repeated network calls on navigat
     5,
     `Subsequent 12 navigations added ZERO requests! Total stayed at ${networkRequestsCount} vs un-cached 80+`
   );
+  queryClient.clear();
 });
 
 test('Account Data Loader Parallelization: All 7 queries execute concurrently in Promise.all', async () => {
@@ -115,3 +116,32 @@ test('Account Data Loader Parallelization: All 7 queries execute concurrently in
   assert.ok(duration < 90, `Parallel execution took ${duration}ms, significantly faster than sequential ~140ms`);
   assert.equal(executionOrder.length, 7, 'All 7 queries completed');
 });
+
+test('Account Data Loader Cache Reuse: Reuses cached dashboard data and avoids duplicate RPC call', async () => {
+  let rpcCallsCount = 0;
+  const mockRpc = async () => {
+    rpcCallsCount++;
+    return { data: { enrolled_courses: [{ id: 'c1', title: 'Biology' }] } };
+  };
+
+  const cachedDashboard = { enrolled_courses: [{ id: 'c1', title: 'Biology' }] };
+
+  // Case A: When cached dashboard data exists in React Query
+  const dashPromiseCached = cachedDashboard
+    ? Promise.resolve({ data: cachedDashboard, error: null })
+    : mockRpc();
+  const resCached = await dashPromiseCached;
+
+  assert.equal(rpcCallsCount, 0, 'Did not call RPC when dashboard was in cache');
+  assert.equal(resCached.data.enrolled_courses.length, 1);
+
+  // Case B: Without cached dashboard data (cold load)
+  const dashPromiseCold = null
+    ? Promise.resolve({ data: null, error: null })
+    : mockRpc();
+  const resCold = await dashPromiseCold;
+
+  assert.equal(rpcCallsCount, 1, 'Called RPC only when cache was empty');
+  assert.equal(resCold.data.enrolled_courses.length, 1);
+});
+

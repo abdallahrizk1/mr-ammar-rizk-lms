@@ -42,7 +42,10 @@ function AccountPageContent() {
 
   const { data: bundle, isLoading } = useQuery({
     queryKey: ['student-account-data'],
-    queryFn: loadStudentAccountData,
+    queryFn: () => {
+      const cachedDash = queryClient.getQueryData(['student-dashboard-data']);
+      return loadStudentAccountData(cachedDash, queryClient);
+    },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,

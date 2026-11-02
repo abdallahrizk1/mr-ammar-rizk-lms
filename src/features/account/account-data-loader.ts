@@ -10,7 +10,10 @@ import {
   optToIndex,
 } from './account-mappers';
 
-export async function loadStudentAccountData(): Promise<AccountDataBundle> {
+export async function loadStudentAccountData(
+  cachedDashboardData?: any,
+  queryClient?: any
+): Promise<AccountDataBundle> {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
@@ -31,6 +34,11 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
     };
   }
 
+  // Reuse cached dashboard data if available to eliminate duplicate RPC network request
+  const dashPromise = cachedDashboardData
+    ? Promise.resolve({ data: cachedDashboardData, error: null })
+    : supabase.rpc('get_student_dashboard_data');
+
   // Execute all independent queries in parallel via Promise.all
   const [
     profileRes,
@@ -46,7 +54,7 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
       .select('id, full_name, phone, parent_phone, grade_level, education_type, governorate, created_at')
       .eq('id', user.id)
       .maybeSingle(),
-    supabase.rpc('get_student_dashboard_data'),
+    dashPromise,
     supabase
       .from('student_invoices')
       .select('id, amount, payment_method, status, created_at, courses:course_id(title)')
@@ -74,6 +82,10 @@ export async function loadStudentAccountData(): Promise<AccountDataBundle> {
       .eq('student_id', user.id)
       .order('completed_at', { ascending: false }),
   ]);
+
+  if (!cachedDashboardData && dashRes?.data && queryClient?.setQueryData) {
+    try { queryClient.setQueryData(['student-dashboard-data'], dashRes.data); } catch {}
+  }
 
   // 1. Map Profile
   let profile = DEFAULT_PROFILE;

@@ -47,12 +47,21 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
             .limit(5);
           if (data && data.length > 0) notifs = data as NotificationItem[];
         }
-        return {
-          user,
-          role: user?.app_metadata?.role || user?.user_metadata?.role || (user ? 'student' : null),
-          fullName: user?.user_metadata?.full_name || 'طالب منصة عمار',
-          notifications: notifs,
-        };
+        let role = user?.app_metadata?.role || user?.user_metadata?.role || (user ? 'student' : null);
+        let fullName = user?.user_metadata?.full_name || 'طالب منصة عمار';
+        if (typeof window !== 'undefined' && (!role || role === 'student')) {
+          try {
+            const adminCached = localStorage.getItem('lms_admin_auth_user');
+            if (adminCached) {
+              const p = JSON.parse(adminCached);
+              if (p?.role && ['super_admin', 'admin', 'assistant'].includes(p.role)) {
+                role = p.role;
+                if (p.name) fullName = p.name;
+              }
+            }
+          } catch {}
+        }
+        return { user, role, fullName, notifications: notifs };
       } catch {
         return { user: null, role: null, fullName: 'طالب منصة عمار', notifications: [] };
       }
@@ -94,6 +103,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch {}
+    try { localStorage.removeItem('lms_admin_auth_user'); } catch {}
     queryClient.clear();
     setIsProfileOpen(false);
     router.push('/login');
