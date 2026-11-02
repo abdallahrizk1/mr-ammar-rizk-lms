@@ -5,12 +5,14 @@ interface BrandLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   showSubtitle?: boolean;
+  href?: string;
 }
 
 export function BrandLogo({
   className = '',
   size = 'md',
   showSubtitle = true,
+  href = '/',
 }: BrandLogoProps) {
   const iconSizes = {
     sm: 'h-8 w-8',
@@ -26,7 +28,7 @@ export function BrandLogo({
 
   return (
     <Link
-      href="/"
+      href={href}
       prefetch={false}
       className={`group flex items-center gap-3 transition ${className}`}
       dir="rtl"

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, Bell, User, Menu } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { NotificationsMenu, ProfileMenu, type NotificationItem } from './NavDropdowns';
 import { createClient } from '@/lib/supabase/client';
@@ -15,45 +16,57 @@ interface TopNavbarProps {
 
 export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [studentName, setStudentName] = useState('طالب المنصة');
+  const [unreadOverride, setUnreadOverride] = useState<boolean | null>(null);
 
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
-    if (!isLoggedIn) return;
+  }, []);
 
-    const supabase = createClient();
-    const loadUserData = async () => {
+  const { data: authData } = useQuery({
+    queryKey: ['navbar-auth-session'],
+    queryFn: async () => {
       try {
-        const { data } = await supabase.auth.getUser();
-        if (data?.user?.user_metadata?.full_name) {
-          setStudentName(data.user.user_metadata.full_name);
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user || null;
+        let notifs: NotificationItem[] = [];
+        if (user) {
+          const { data } = await supabase
+            .from('notifications')
+            .select('id, title, body, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          if (data && data.length > 0) notifs = data as NotificationItem[];
         }
-      } catch {}
+        return {
+          user,
+          role: user?.app_metadata?.role || user?.user_metadata?.role || (user ? 'student' : null),
+          fullName: user?.user_metadata?.full_name || 'طالب منصة عمار',
+          notifications: notifs,
+        };
+      } catch {
+        return { user: null, role: null, fullName: 'طالب منصة عمار', notifications: [] };
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-      try {
-        const { data } = await supabase
-          .from('notifications')
-          .select('id, title, body, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (data && data.length > 0) {
-          setNotifications(data as NotificationItem[]);
-          setHasUnreadNotifications(true);
-        }
-      } catch {}
-    };
-    loadUserData();
-  }, [isLoggedIn]);
+  const userLoggedIn = isLoggedIn || !!authData?.user;
+  const userRole = authData?.role || null;
+  const studentName = authData?.fullName || 'طالب منصة عمار';
+  const notifications = authData?.notifications || [];
+  const hasUnread = unreadOverride !== null ? unreadOverride : notifications.length > 0;
 
   useEffect(() => {
     const handleClickOutside = (e: PointerEvent) => {
@@ -69,7 +82,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
   const isDark = mounted ? (resolvedTheme === 'dark' || theme === 'dark') : false;
 
   const handleMarkAllRead = async () => {
-    setHasUnreadNotifications(false);
+    setUnreadOverride(false);
     try {
       const supabase = createClient();
       await supabase.rpc('mark_all_notifications_read');
@@ -81,27 +94,37 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch {}
+    queryClient.clear();
     setIsProfileOpen(false);
     router.push('/login');
   };
 
+  const isStaff = userRole === 'admin' || userRole === 'super_admin' || userRole === 'assistant';
+  const logoHref = !userLoggedIn ? '/' : isStaff ? '/admin' : '/dashboard';
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (userLoggedIn && pathname === logoHref) {
+      e.preventDefault();
+    }
+  };
+
   return (
     <>
-      <header ref={navRef} className="sticky top-0 z-40 w-full pt-2 sm:pt-2 px-2 sm:px-6 max-w-7xl mx-auto">
-        <div className="flex h-12 sm:h-14 items-center justify-between gap-1.5 sm:gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {isLoggedIn && (
+      <header ref={navRef} className="sticky top-0 z-40 w-full pt-3 sm:pt-2 px-3 sm:px-6 max-w-7xl mx-auto">
+        <div className="flex h-12 sm:h-14 items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-2.5 sm:px-4 shadow-sm backdrop-blur-md dark:border-teal-500/20 dark:bg-[#091D20]/95 transition-colors">
+          <div className="flex items-center gap-2 shrink-0">
+            {userLoggedIn && (
               <button
                 type="button"
                 onClick={() => setIsMobileDrawerOpen(true)}
                 aria-label="فتح القائمة الجانبية"
-                className="flex md:hidden h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-bio-teal/10 hover:bg-bio-teal/20 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400 border border-bio-teal/20 transition active:scale-95"
+                className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl bg-bio-teal/10 hover:bg-bio-teal/20 text-bio-teal dark:bg-emerald-500/10 dark:text-emerald-400 border border-bio-teal/20 transition active:scale-95"
               >
                 <Menu className="h-4 w-4" />
               </button>
             )}
 
-            <Link href="/" prefetch={false} className="hidden md:flex items-center shrink-0">
+            <Link href={logoHref} prefetch={false} onClick={handleLogoClick} className="hidden md:flex items-center shrink-0">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
@@ -110,36 +133,36 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
             </Link>
           </div>
 
-          <div className="flex md:hidden items-center justify-center shrink min-w-0">
-            <Link href="/" prefetch={false} className="flex items-center">
+          <div className="flex md:hidden items-center justify-center">
+            <Link href={logoHref} prefetch={false} onClick={handleLogoClick} className="flex items-center">
               <img
                 src="/images/logo-ammar.png"
                 alt="شعار المنصة"
-                className="h-6 sm:h-7 w-auto max-w-[80px] object-contain"
+                className="h-7 w-auto object-contain"
               />
             </Link>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               dir="ltr"
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
               aria-label="تبديل الوضع الليلي والنهاري"
-              className="relative inline-flex h-7 w-[50px] shrink-0 cursor-pointer items-center rounded-full bg-slate-200/90 border border-slate-300/80 p-0.5 transition-colors dark:bg-[#040D0E] dark:border-teal-500/40 focus:outline-none overflow-hidden"
+              className="relative inline-flex h-7 w-[54px] shrink-0 cursor-pointer items-center rounded-full bg-slate-200/90 p-0.5 transition-colors dark:bg-[#040D0E] dark:border dark:border-teal-500/30 focus:outline-none"
             >
-              <div className="flex w-full items-center justify-between px-1.5 text-xs select-none">
+              <div className="flex w-full items-center justify-between px-1.5 text-xs">
                 <Sun className={`h-3 w-3 transition-colors ${!isDark ? 'text-amber-500' : 'text-slate-400'}`} />
                 <Moon className={`h-3 w-3 transition-colors ${isDark ? 'text-emerald-400' : 'text-slate-400'}`} />
               </div>
               <span
-                className={`absolute top-[3px] left-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out dark:bg-emerald-500 ${
-                  isDark ? 'translate-x-[22px]' : 'translate-x-0'
+                className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out dark:bg-emerald-500 ${
+                  isDark ? 'translate-x-[26px]' : 'translate-x-0'
                 }`}
               />
             </button>
 
-            {isLoggedIn ? (
+            {userLoggedIn ? (
               <div className="flex items-center gap-1.5 sm:gap-2 relative">
                 <button
                   type="button"
@@ -151,7 +174,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
                   className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100 dark:border-teal-500/30 dark:bg-[#040D0E] dark:text-slate-200"
                 >
                   <Bell className="h-4 w-4" />
-                  {hasUnreadNotifications && (
+                  {hasUnread && (
                     <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#091D20]" />
                   )}
                 </button>
@@ -170,7 +193,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
 
                 <NotificationsMenu
                   isOpen={isNotificationsOpen}
-                  hasUnread={hasUnreadNotifications}
+                  hasUnread={hasUnread}
                   onMarkAllRead={handleMarkAllRead}
                   notifications={notifications}
                 />
@@ -180,6 +203,7 @@ export function TopNavbar({ isLoggedIn = false }: TopNavbarProps) {
                   studentName={studentName}
                   onClose={() => setIsProfileOpen(false)}
                   onLogout={handleLogout}
+                  isStaff={isStaff}
                 />
               </div>
             ) : (

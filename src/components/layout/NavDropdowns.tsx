@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Home, LayoutDashboard, Shield, LogOut, CheckCheck } from 'lucide-react';
+import { LayoutDashboard, Shield, LogOut, CheckCheck, User } from 'lucide-react';
 
 export interface NotificationItem {
   id: string;
@@ -69,9 +69,10 @@ interface ProfileMenuProps {
   studentName: string;
   onClose: () => void;
   onLogout: () => void;
+  isStaff?: boolean;
 }
 
-export function ProfileMenu({ isOpen, studentName, onClose, onLogout }: ProfileMenuProps) {
+export function ProfileMenu({ isOpen, studentName, onClose, onLogout, isStaff = false }: ProfileMenuProps) {
   if (!isOpen) return null;
 
   return (
@@ -83,16 +84,7 @@ export function ProfileMenu({ isOpen, studentName, onClose, onLogout }: ProfileM
 
       <div className="py-2 space-y-1">
         <Link
-          href="/"
-          prefetch={false}
-          onClick={onClose}
-          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-[#071719]"
-        >
-          <Home className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
-          <span>الرئيسية</span>
-        </Link>
-        <Link
-          href="/dashboard"
+          href={isStaff ? '/admin' : '/dashboard'}
           prefetch={false}
           onClick={onClose}
           className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-[#071719]"
@@ -101,13 +93,22 @@ export function ProfileMenu({ isOpen, studentName, onClose, onLogout }: ProfileM
           <span>لوحة التحكم</span>
         </Link>
         <Link
-          href="/account"
+          href="/account?tab=profile"
+          prefetch={false}
+          onClick={onClose}
+          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-[#071719]"
+        >
+          <User className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
+          <span>حسابي</span>
+        </Link>
+        <Link
+          href="/account?tab=security"
           prefetch={false}
           onClick={onClose}
           className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-[#071719]"
         >
           <Shield className="h-4 w-4 text-bio-teal dark:text-emerald-400" />
-          <span>حسابي وإعدادات الأمان</span>
+          <span>إعدادات الأمان</span>
         </Link>
       </div>
 

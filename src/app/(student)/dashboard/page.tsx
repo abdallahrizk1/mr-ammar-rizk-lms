@@ -1,40 +1,42 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CheckSquare, Lightbulb, Bookmark, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { getStoredEnrolledCourses } from '@/lib/utils/student-storage';
 
 export default function StudentDashboardPage() {
   const [localCourses, setLocalCourses] = useState<any[]>([]);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase.rpc('get_student_dashboard_data');
-      if (error) {
-        console.warn('Dashboard RPC notice:', error.message);
-      } else if (data) {
-        setDashboardData(data);
-      }
-    } catch (err) {
-      console.warn('Dashboard fetch notice:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     try {
       const stored = getStoredEnrolledCourses();
       if (stored && stored.length > 0) setLocalCourses(stored);
     } catch {}
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+  }, []);
+
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['student-dashboard-data'],
+    queryFn: async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc('get_student_dashboard_data');
+        if (error) {
+          console.warn('Dashboard RPC notice:', error.message);
+          return null;
+        }
+        return data;
+      } catch (err) {
+        console.warn('Dashboard fetch notice:', err);
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
   const stats = dashboardData?.student_stats || { mistakes_count: 0, completed_lessons_count: 0 };
   const enrolledCourses = (dashboardData?.enrolled_courses && dashboardData.enrolled_courses.length > 0)
