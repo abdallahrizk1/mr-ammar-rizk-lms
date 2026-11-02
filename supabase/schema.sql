@@ -1771,6 +1771,27 @@ RETURNS VOID LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   UPDATE public.profiles SET last_notifications_read_at = NOW() WHERE id = auth.uid();
 $$;
 
+CREATE OR REPLACE FUNCTION public.get_staff_auth_email(p_phone text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_email text;
+BEGIN
+  SELECT u.email INTO v_email
+  FROM auth.users u
+  JOIN public.profiles p ON p.id = u.id
+  WHERE p.phone = p_phone
+    AND p.role IN ('assistant', 'admin', 'super_admin')
+    AND p.deleted_at IS NULL
+  LIMIT 1;
+
+  RETURN v_email;
+END;
+$$;
+
 -- 8. GRANTS
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
@@ -1781,6 +1802,7 @@ GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 
 GRANT EXECUTE ON FUNCTION public.has_admin_permission(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_staff_auth_email(TEXT) TO anon, authenticated;
 GRANT SELECT ON public.platform_settings, public.courses, public.modules, public.course_modules_map, public.lessons TO anon;
 
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
